@@ -1,0 +1,29 @@
+Elasticsearch es una herramienta utilizada para la búsqueda de información como respuesta a una consulta. 
+En general, la búsqueda puede ser realizada de dos formas diferentes. 
+La primera se logra buscando datos que compartan caracteres (palabras o subpalabras clave) con la consulta.
+La segunda buscando datos que se encuentren lo más cerca posible en el espacio de la consulta. 
+Esto se logra representando tanto la consulta como los datos almacenados como vectores numéricos, y aquí es donde entran en juego las bases de datos vectoriales.
+Una base de datos vectorial entonces es donde se almacenan datos en forma de vectores. 
+Para lograr entonces una búsqueda de información eficiente, se pueden utilizar tanto la búsqueda de caracteres como semántica para lograr una búsqueda híbrida que obtenga las ventajas de ambos métodos.
+
+Re-ranking significa, una vez obtenidos los resultados más relevantes dada una consulta, re-ordenar los resultados con algún método específico, con el fin de mejorarlos según el problema tratado.
+La forma en la que implementaría este método es, una vez recuperados los resultados utilizando una búsqueda híbrida, haciendo una llamada a un modelo de lenguaje, pidiendo ordenar los resultados en base a un criterio especificado según el problema a tratar.
+
+Los documentos almacenados en la base de datos pueden tener gran tamaño, 
+y como son procesados por un modelo de lenguaje luego de recuperar la información, 
+y antes de escribir un resultado, 
+suele ser de ayuda eliminar información redundante divdiendo los documentos almacenados en partes más pequeñas.
+De este modo aumentamos la cantidad de documentos que pueden ser recuperados, pero disminuimos el contexto de la llamada final al LLM.
+
+Una alta cobertura (recall), implica minimizar la cantidad de falsos negativos, o sea, la cantidad de documentos que no fueron recuperados pero debieron serlo.
+Una alta precisión, por otro lado, implica minimizar la cantidad de falsos positivos, o sea, la cantidad de documentos que sí fueron recuperados, pero no debieron serlo.
+
+El chunking implica dividir los documentos en partes más pequeñas. 
+En este caso, es posible que un gran documento que hable sobre un producto en particular sea dividido en varias partes done ese producto sea solo nombrado una vez.
+Como el producto es nombrado una sola vez, el o los chunks que contengan el nombre del producto van a ser recuperados ya sea por la búsqueda semántica o léxica,
+pero los fragmentos que queden aislados de ese chunk no lo serán.
+Por lo tanto, según este ejemplo, el chunking podría aumentar la precisión aunque disminuir la recuperación, según el tamaño de los chunks.
+
+El re-ranking implica volver a calcular los puntajes utilizando un método de cálculo específico, como por ejemplo utilizar un transformer.
+Teóricamente solamente mejorar los resultados, aunque puede depender del modelo. 
+Por ejemplo, un modelo que no tenga conocimiento de dominio puede ignorar un apodo de un producto en el cálculo del ranking, reduciendo la recuperación (recall) de documentos relevantes.
