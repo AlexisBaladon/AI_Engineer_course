@@ -40,11 +40,25 @@ def search(
     tokenized_query = tokenize(query)
     scores = bm25.get_scores(tokenized_query)
 
+    # Scores are not sorted by default
     ranked = sorted(
         zip(chunks, scores),
         key=lambda x: x[1],
         reverse=True,
     )
 
-    return ranked[:top_k]
+    top_results = ranked[:top_k]
+
+    # Add "score" as a field
+    top_results = [
+        {
+            "url": chunk["url"],
+            "chunk_id": chunk["chunk_id"],
+            "score": float(score),
+            "chunk_text": chunk["chunk_text"],
+        }
+        for chunk, score in top_results
+    ]
+
+    return top_results
 

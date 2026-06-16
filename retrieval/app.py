@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, request
+from langsmith import traceable
+
 from handlers.retrieval_handler import (
     load_chunks,
     build_bm25_index,
@@ -17,14 +19,12 @@ chunks = load_chunks(CHUNKED_DATA_PATH)
 bm25 = build_bm25_index(chunks)
 
 
-@app.route("/retrieve")
-def retrieve():
-    query = request.args.get("query", None)
-
+@traceable(run_type="tool", name="Retrieve Context")
+def retrieve_and_trace(query: str):
     if not query:
-        return jsonify({
+        return {
             "error": "query parameter is required"
-        }), 400
+        }, 400
 
     results = search(
         query=query,
@@ -33,7 +33,19 @@ def retrieve():
         top_k=3,
     )
 
-    return jsonify(results)
+    return results
+
+
+
+@app.route("/retrieve")
+def retrieve():
+    query = request.args.get("query", None)
+    result = retrieve_and_trace(query)
+    
+    if type(result) is tuple:
+        return jsonify(result[0]), result[1]
+    
+    return jsonify(result)
 
 
 if __name__ == "__main__":
