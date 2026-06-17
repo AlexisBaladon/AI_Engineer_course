@@ -33,19 +33,16 @@ def retrieve_and_trace(query: str):
         top_k=3,
     )
 
-    return results
+    return results, 200
 
 
 
 @app.route("/retrieve")
 def retrieve():
     query = request.args.get("query", None)
-    result = retrieve_and_trace(query)
+    result, status_code = retrieve_and_trace(query)
     
-    if type(result) is tuple:
-        return jsonify(result[0]), result[1]
-    
-    return jsonify(result)
+    return jsonify(result), status_code
 
 
 if __name__ == "__main__":
