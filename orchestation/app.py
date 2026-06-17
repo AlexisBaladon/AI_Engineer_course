@@ -11,6 +11,7 @@ from constants import (
     GENERATION_HOST,
     GENERATION_PORT,
 )
+from handlers.prompts_handler import fill_user_prompt, system_prompt
 
 
 app = Flask(__name__)
@@ -20,7 +21,7 @@ app = Flask(__name__)
 def answer_query_and_trace(
     query: str,
 ) -> str:
-    # Step 1: Retrieve context
+    # Retrieve context
     # TODO: Add exceptions
     retrieval_response = requests.get(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
@@ -30,30 +31,16 @@ def answer_query_and_trace(
     retrieval_response.raise_for_status()
     retrieved_chunks = retrieval_response.json()
 
-    # Step 2: Format context
-    context = "\n\n".join(
-        chunk["chunk_text"]
-        for chunk in retrieved_chunks
-    )
+    # Format context
+    documents = [chunk["chunk_text"] for chunk in retrieved_chunks]
+    user_prompt = fill_user_prompt(query, documents)
 
-    # Step 3: Build prompt
-    prompt = f"""
-Use the following context to answer the user's question.
-
-Context:
-{context}
-
-Question:
-{query}
-
-Answer:
-""".strip()
 
     # Step 4: Generate answer
     generation_response = requests.get(
         f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
-        params={"query": prompt},
-        timeout=30,
+        params={"user_prompt": user_prompt, "system_prompt": system_prompt},
+        timeout=5,
     )
     generation_response.raise_for_status()
 

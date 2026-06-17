@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from langsmith import traceable
-from langchain_core.messages import HumanMessage
-from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
 
 from constants import (
     HOST,
@@ -9,33 +9,49 @@ from constants import (
     DEBUG,
 )
 
-
 app = Flask(__name__)
 
+llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0,
+)
 
-@traceable(run_type="tool", name="Retrieve Context")
-def generate_and_trace(query: str):
-    if not query:
+
+@traceable(run_type="llm", name="Generate Answer")
+def generate_and_trace(user_prompt: str, system_prompt: str):
+    if not user_prompt:
         return {
-            "error": "query parameter is required"
+            "error": "user_query parameter is required"
         }, 400
+    
+    messages = [
+        HumanMessage(content=user_prompt)
+    ]
 
-    responses = ["Hello, I am a dummy AI!", "What else do you need help with?"]
-    fake_model = GenericFakeChatModel(messages=iter(responses))
-    response = fake_model.invoke([HumanMessage(content=query)])
-    response = {"content": response.content}
+    if system_prompt is not None:
+        system_message = SystemMessage(content=system_prompt)
+        messages.append(system_message)
 
-    return response, 200
+    response = llm.invoke(messages)
 
+    return {
+        "content": response.content
+    }, 200
 
 
 @app.route("/generate")
 def generate():
-    query = request.args.get("query", None)
-    result, status_code = generate_and_trace(query)
-    
+    user_prompt = request.args.get("user_prompt", None)
+    system_prompt = request.args.get("system_prompt", None)
+
+    result, status_code = generate_and_trace(user_prompt, system_prompt)
+
     return jsonify(result), status_code
 
 
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT, debug=DEBUG)
+    app.run(
+        host=HOST,
+        port=PORT,
+        debug=DEBUG,
+    )
