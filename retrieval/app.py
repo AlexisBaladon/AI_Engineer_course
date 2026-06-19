@@ -20,7 +20,7 @@ bm25 = build_bm25_index(chunks)
 
 
 @traceable(run_type="tool", name="Retrieve Context")
-def retrieve_and_trace(query: str):
+def retrieve_and_trace(query: str, top_k=3, lexical_weight=0.5, semantic_weight=0.5):
     if not query:
         return {
             "error": "query parameter is required"
@@ -30,7 +30,9 @@ def retrieve_and_trace(query: str):
         query=query,
         bm25=bm25,
         chunks=chunks,
-        top_k=3,
+        top_k=top_k,
+        lexical_weight=lexical_weight,
+        semantic_weight=semantic_weight,
     )
 
     return results, 200
@@ -40,7 +42,10 @@ def retrieve_and_trace(query: str):
 @app.route("/retrieve")
 def retrieve():
     query = request.args.get("query", None)
-    result, status_code = retrieve_and_trace(query)
+    top_k = request.args.get("top_k", 3)
+    lexical_weight = request.args.get("lexical_weight", 0.5)
+    semantic_weight = request.args.get("semantic_weight", 0.5)
+    result, status_code = retrieve_and_trace(query, top_k, lexical_weight, semantic_weight)
     
     return jsonify(result), status_code
 
