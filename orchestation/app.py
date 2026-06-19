@@ -1,5 +1,9 @@
+from typing import TypedDict
+
 from flask import Flask, jsonify, request
 from langsmith import traceable
+from langgraph.graph import StateGraph, START, END
+
 import requests
 
 from constants import (
@@ -11,50 +15,115 @@ from constants import (
     GENERATION_HOST,
     GENERATION_PORT,
 )
-from handlers.prompts_handler import fill_user_prompt, system_prompt
+
+from handlers.prompts_handler import (
+    fill_user_prompt,
+    system_prompt,
+)
 
 
 app = Flask(__name__)
 
 
-@traceable(name="Main chain")
-def answer_query_and_trace(
-    query: str,
-) -> str:
-    # Retrieve context
-    # TODO: Add exceptions
+class RAGState(TypedDict):
+    query: str
+    retrieved_chunks: list
+    documents: list[str]
+    user_prompt: str
+    answer: dict
+
+
+@traceable(name="Retrieve Context")
+def retrieve_node(state: RAGState):
+    # TODO: Handle exceptions
     retrieval_response = requests.get(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
-        params={"query": query},
+        params={"query": state["query"]},
         timeout=10,
     )
+
     retrieval_response.raise_for_status()
+
     retrieved_chunks = retrieval_response.json()
 
-    # Format context
-    documents = [chunk["chunk_text"] for chunk in retrieved_chunks]
-    user_prompt = fill_user_prompt(query, documents)
+    return {
+        "retrieved_chunks": retrieved_chunks,
+        "documents": [
+            chunk["chunk_text"]
+            for chunk in retrieved_chunks
+        ],
+    }
 
 
-    # Step 4: Generate answer
+@traceable(name="Build Prompt")
+def build_prompt_node(state: RAGState):
+    return {
+        "user_prompt": fill_user_prompt(
+            state["query"],
+            state["documents"],
+        )
+    }
+
+
+@traceable(name="Generate Answer")
+def generate_node(state: RAGState):
+    # TODO: Handle exceptions
     generation_response = requests.get(
         f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
-        params={"user_prompt": user_prompt, "system_prompt": system_prompt},
+        params={
+            "user_prompt": state["user_prompt"],
+            "system_prompt": system_prompt,
+        },
         timeout=5,
     )
+
     generation_response.raise_for_status()
 
-    return generation_response.json(), 200
+    return {
+        "answer": generation_response.json()
+    }
 
+
+def build_graph():
+    graph_builder = StateGraph(RAGState)
+    graph_builder.add_node("retrieve", retrieve_node)
+    graph_builder.add_node("build_prompt", build_prompt_node)
+    graph_builder.add_node("generate", generate_node)
+    graph_builder.add_edge(START, "retrieve")
+    graph_builder.add_edge("retrieve", "build_prompt")
+    graph_builder.add_edge("build_prompt", "generate")
+    graph_builder.add_edge("generate", END)
+    return graph_builder.compile()
+
+rag_graph = build_graph()
+
+
+@traceable(name="Main Chain")
+def answer_query_and_trace(query: str):
+    result = rag_graph.invoke({
+        "query": query,
+    })
+
+    return result["answer"], 200
 
 
 @app.route("/run_chain")
 def run_chain():
-    query = request.args.get("query", None)
+    query = request.args.get("query")
+
+    if not query:
+        return jsonify({
+            "error": "query parameter is required"
+        }), 400
+
     result, status_code = answer_query_and_trace(query)
-    
+
     return jsonify(result), status_code
 
 
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT, debug=DEBUG)
+    app.run(
+        host=HOST,
+        port=PORT,
+        debug=DEBUG,
+    )
