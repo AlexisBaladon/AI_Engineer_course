@@ -1,22 +1,31 @@
 import { useRef, useState } from "react";
+import Spinner from "./Spinner";
 
-function App() {
+export default function App() {
   const inputRef = useRef(null);
   const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function sendMessage() {
     const message = inputRef.current.value;
-
     if (!message) return;
 
-    const res = await fetch(
-      `http://localhost:1232/run_chain?query=${encodeURIComponent(message)}`
-    );
+    setLoading(true);
+    setAnswer("");
 
-    const data = await res.json();
-    console.log(data)
+    try {
+      const res = await fetch(
+        `http://localhost:1232/run_chain?query=${encodeURIComponent(message)}`
+      );
 
-    setAnswer(data.content);
+      const data = await res.json();
+
+      setAnswer(data.content);
+    } catch (err) {
+      setAnswer("Error connecting to backend.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -35,10 +44,16 @@ function App() {
 
       <div style={{ marginTop: 20 }}>
         <b>Answer:</b>
-        <p>{answer}</p>
+
+        {loading ? (
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+            <Spinner />
+            <span>Thinking...</span>
+          </div>
+        ) : (
+          <p>{answer}</p>
+        )}
       </div>
     </div>
   );
 }
-
-export default App;
