@@ -23,14 +23,12 @@ def generate_and_trace(user_prompt: str, system_prompt: str):
         return {
             "error": "user_query parameter is required"
         }, 400
-    
-    messages = [
-        HumanMessage(content=user_prompt)
-    ]
 
+    messages = []
     if system_prompt is not None:
         system_message = SystemMessage(content=system_prompt)
         messages.append(system_message)
+    messages.append(HumanMessage(content=user_prompt))
 
     response = llm.invoke(messages)
 
