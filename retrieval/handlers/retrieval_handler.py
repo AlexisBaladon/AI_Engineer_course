@@ -6,9 +6,6 @@ from openai import OpenAI
 import numpy as np
 
 
-client = OpenAI()
-
-
 def tokenize(sentence: str):
     return sentence.lower().split()
 
@@ -64,12 +61,12 @@ def min_max_normalize(values):
 def search(
     query: str,
     bm25: BM25Okapi,
+    openai_client: OpenAI,
     chunks,
     top_k: int = 5,
     lexical_weight: float = 0.5,
     semantic_weight: float = 0.5,
     embedding_model: str = "text-embedding-3-small",
-    client=client,
 ):
 
     # Keyword search
@@ -79,7 +76,7 @@ def search(
     )
 
     # Semantic search
-    query_embedding = client.embeddings.create(
+    query_embedding = openai_client.embeddings.create(
         model=embedding_model,
         input=query,
     ).data[0].embedding

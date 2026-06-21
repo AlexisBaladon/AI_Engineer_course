@@ -1,10 +1,11 @@
 from typing import TypedDict
+import requests
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from langsmith import traceable
 from langgraph.graph import StateGraph, START, END
 
-import requests
 
 from constants import (
     HOST,
@@ -23,6 +24,7 @@ from handlers.prompts_handler import (
 
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173"])
 
 
 class RAGState(TypedDict):

@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from langsmith import traceable
+from openai import OpenAI
 
 from handlers.retrieval_handler import (
     load_chunks,
@@ -17,6 +18,7 @@ from constants import (
 app = Flask(__name__)
 chunks = load_chunks(CHUNKED_DATA_PATH)
 bm25 = build_bm25_index(chunks)
+openai_client = OpenAI()
 
 
 @traceable(run_type="tool", name="Retrieve Context")
@@ -29,6 +31,7 @@ def retrieve_and_trace(query: str, top_k=3, lexical_weight=0.5, semantic_weight=
     results = search(
         query=query,
         bm25=bm25,
+        openai_client=openai_client,
         chunks=chunks,
         top_k=top_k,
         lexical_weight=lexical_weight,
