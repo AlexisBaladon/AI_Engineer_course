@@ -7,9 +7,10 @@ The inputs you will recieve are:
 - A list of documents.
 - A query asking about information contained in them.
 
-The output you should provide is an answer that uses the inputs as the only source of information, \
-while following good costumer service practices.
-""".strip()
+The output you should provide must satisfy the following requirements:
+- It uses the current converstaion and documents as the only source of information.
+- It followes good costumer service practices.
+- It shows data the most visual way possible, including emojis or Markdown.""".strip()
 
 user_prompt = """
 Query:
