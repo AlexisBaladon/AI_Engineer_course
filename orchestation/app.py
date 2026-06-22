@@ -28,70 +28,106 @@ CORS(app, origins=["http://localhost:5173"])
 
 
 class RAGState(TypedDict):
-    query: str
+    user_conversation: list[dict]
     stream: bool
+
     retrieved_chunks: list
     documents: list[str]
-    user_prompt: str
+
+    conversation_for_generation: list[dict]
     answer: dict
     answer_stream: object
 
 
+def get_last_message(user_conversation: list[dict]):
+    return next(
+        (
+            message["content"]
+            for message in reversed(user_conversation)
+            if message["role"] == "user"
+        ),
+        None,
+    )
+
+
 @traceable(name="Retrieve Context")
 def retrieve_node(state: RAGState):
+    last_user_message = get_last_message(state["user_conversation"])
+
     retrieval_response = requests.get(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
-        params={"query": state["query"]},
+        params={"query": last_user_message},
         timeout=10,
     )
 
     retrieval_response.raise_for_status()
+
     retrieved_chunks = retrieval_response.json()
 
     return {
         "retrieved_chunks": retrieved_chunks,
-        "documents": [chunk["chunk_text"] for chunk in retrieved_chunks],
+        "documents": [
+            chunk["chunk_text"]
+            for chunk in retrieved_chunks
+        ],
     }
 
 
 @traceable(name="Build Prompt")
 def build_prompt_node(state: RAGState):
-    return {
-        "user_prompt": fill_user_prompt(
-            state["query"],
-            state["documents"],
-        )
-    }
+    last_user_message = get_last_message(state["user_conversation"])
+    rag_prompt = fill_user_prompt(last_user_message, state["documents"])
+    
+    conversation_for_generation = [
+        {
+            "role": "system",
+            "content": system_prompt,
+        }
+    ]
+    conversation_for_generation.extend(state["user_conversation"][:-1])
+    conversation_for_generation.append(
+        {
+            "role": "user",
+            "content": rag_prompt,
+        }
+    )
+
+    return {"conversation_for_generation": conversation_for_generation}
 
 
 @traceable(name="Generate Answer")
 def generate_node(state: RAGState):
-    params = {
-        "user_prompt": state["user_prompt"],
-        "system_prompt": system_prompt,
+    payload = {
+        "messages": state["conversation_for_generation"],
         "stream": state.get("stream", False),
     }
 
     if state.get("stream"):
-        generation_response = requests.get(
+        response = requests.post(
             f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
-            params=params,
+            json=payload,
             stream=True,
             timeout=60,
         )
-        generation_response.raise_for_status()
 
-        return {"answer_stream": generation_response}
+        response.raise_for_status()
 
-    else:
-        generation_response = requests.get(
-            f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
-            params=params,
-            timeout=30,
-        )
-        generation_response.raise_for_status()
+        return {
+            "answer_stream": response,
+        }
 
-        return {"answer": generation_response.json(), "answer_stream": None}
+    response = requests.post(
+        f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
+        json=payload,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    return {
+        "answer": response.json(),
+        "answer_stream": None,
+    }
 
 
 def build_graph():
@@ -109,9 +145,9 @@ rag_graph = build_graph()
 
 
 @traceable(name="Main Chain")
-def answer_query_and_trace(query: str, stream: bool = False):
+def answer_query_and_trace(messages: list[str], stream: bool = False):
     result = rag_graph.invoke({
-        "query": query,
+        "user_conversation": messages,
         "stream": stream,
     })
 
@@ -120,16 +156,15 @@ def answer_query_and_trace(query: str, stream: bool = False):
     return result["answer"], 200
 
 
-@app.route("/run_chain")
+@app.route("/run_chain", methods=["POST"])
 def run_chain():
-    query = request.args.get("query")
-    stream = request.args.get("stream", "false").lower() == "true"
+    body = request.get_json()
 
-    if not query:
-        return jsonify({"error": "query parameter is required"}), 400
+    messages = body.get("messages", [])
+    stream = body.get("stream", False)
 
     if stream:
-        raw_response, _ = answer_query_and_trace(query, stream=True)
+        raw_response, _ = answer_query_and_trace(messages, stream=True)
 
         def generate_chunks():
             for chunk in raw_response.iter_content(chunk_size=None):
@@ -141,7 +176,7 @@ def run_chain():
             content_type=raw_response.headers.get("Content-Type", "text/event-stream"),
         )
 
-    result, status_code = answer_query_and_trace(query, stream=False)
+    result, status_code = answer_query_and_trace(messages, stream=False)
     return jsonify(result), status_code
 
 
