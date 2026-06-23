@@ -58,17 +58,64 @@ def min_max_normalize(values):
     ]
 
 
+RERANKING_PROMPT = """
+Query:
+{query}
+
+Documents:
+{documents}
+
+Rank all documents from most relevant to least relevant.
+
+Return ONLY a JSON array of indices.
+
+Example:
+[3, 1, 0, 2]
+"""
+
+
+def rerank_chunks(
+    query: str,
+    chunks: list[dict],
+    openai_client: OpenAI,
+    model: str = "gpt-5-mini",
+    reranking_prompt=RERANKING_PROMPT,
+):
+    docs = []
+
+    for i, chunk in enumerate(chunks):
+        docs.append(
+            f"[{i}]\n{chunk['chunk_text']}"
+        )
+
+    prompt = reranking_prompt.format(query=query, documents=chr(10).join(docs))
+
+    response = openai_client.responses.create(
+        model=model,
+        input=prompt,
+    )
+
+    ranking = json.loads(
+        response.output_text
+    )
+
+    return [
+        chunks[i]
+        for i in ranking
+    ]
+
+
 def search(
     query: str,
     bm25: BM25Okapi,
     openai_client: OpenAI,
     chunks,
+    candidate_count=10,
     top_k: int = 5,
     lexical_weight: float = 0.5,
     semantic_weight: float = 0.5,
     embedding_model: str = "text-embedding-3-small",
 ):
-
     # Keyword search
     tokenized_query = tokenize(query)
     bm25_scores = bm25.get_scores(
@@ -119,11 +166,12 @@ def search(
         key=lambda x: x[1],
         reverse=True,
     )
+    candidate_results = ranked[:candidate_count]
 
-    top_results = ranked[:top_k]
-    top_results_casted = []
 
-    for chunk, hybrid_score, bm25_score, semantic_score, in top_results:
+    # Cast results
+    candidate_results_casted = []
+    for chunk, hybrid_score, bm25_score, semantic_score, in candidate_results:
         new_result_datapoint = {
             "url": chunk["url"],
             "chunk_id": chunk["chunk_id"],
@@ -132,6 +180,9 @@ def search(
             "semantic_score": float(semantic_score),
             "chunk_text": chunk["chunk_text"],
         }
-        top_results_casted.append(new_result_datapoint)
+        candidate_results_casted.append(new_result_datapoint)
 
-    return top_results_casted
+    reranked_results = rerank_chunks(query, candidate_results_casted, openai_client)
+    top_results = reranked_results[:top_k]
+
+    return top_results
