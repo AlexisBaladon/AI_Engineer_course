@@ -57,7 +57,7 @@ def retrieve_node(state: RAGState):
     retrieval_response = requests.get(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
         params={"query": last_user_message},
-        timeout=10,
+        timeout=30,
     )
 
     retrieval_response.raise_for_status()
