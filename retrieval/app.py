@@ -22,7 +22,7 @@ openai_client = OpenAI()
 
 
 @traceable(run_type="tool", name="Retrieve Context")
-def retrieve_and_trace(query: str, top_k=3, lexical_weight=0.5, semantic_weight=0.5):
+def retrieve_and_trace(query: str, reranking_candidate_count=10, top_k=3):
     if not query:
         return {
             "error": "query parameter is required"
@@ -33,9 +33,8 @@ def retrieve_and_trace(query: str, top_k=3, lexical_weight=0.5, semantic_weight=
         bm25=bm25,
         openai_client=openai_client,
         chunks=chunks,
+        candidate_count=reranking_candidate_count,
         top_k=top_k,
-        lexical_weight=lexical_weight,
-        semantic_weight=semantic_weight,
     )
 
     return results, 200
@@ -45,10 +44,9 @@ def retrieve_and_trace(query: str, top_k=3, lexical_weight=0.5, semantic_weight=
 @app.route("/retrieve")
 def retrieve():
     query = request.args.get("query", None)
+    reranking_candidate_count = request.args.get("reranking_candidate_count", 10)
     top_k = request.args.get("top_k", 3)
-    lexical_weight = request.args.get("lexical_weight", 0.5)
-    semantic_weight = request.args.get("semantic_weight", 0.5)
-    result, status_code = retrieve_and_trace(query, top_k, lexical_weight, semantic_weight)
+    result, status_code = retrieve_and_trace(query, reranking_candidate_count, top_k)
     
     return jsonify(result), status_code
 

@@ -110,23 +110,36 @@ def search(
     bm25: BM25Okapi,
     openai_client: OpenAI,
     chunks,
-    candidate_count=10,
+    candidate_count: int = 10,
     top_k: int = 5,
-    lexical_weight: float = 0.5,
-    semantic_weight: float = 0.5,
     embedding_model: str = "text-embedding-3-small",
 ):
-    # Keyword search
+    # Lexical retrieval
     tokenized_query = tokenize(query)
+
     bm25_scores = bm25.get_scores(
         tokenized_query
     )
 
-    # Semantic search
-    query_embedding = openai_client.embeddings.create(
-        model=embedding_model,
-        input=query,
-    ).data[0].embedding
+    lexical_ranked = sorted(
+        zip(chunks, bm25_scores),
+        key=lambda x: x[1],
+        reverse=True,
+    )
+
+    lexical_candidates = lexical_ranked[
+        :candidate_count
+    ]
+
+    # Semantic retrieval
+    query_embedding = (
+        openai_client.embeddings.create(
+            model=embedding_model,
+            input=query,
+        )
+        .data[0]
+        .embedding
+    )
 
     semantic_scores = [
         cosine_similarity(
@@ -136,53 +149,61 @@ def search(
         for chunk in chunks
     ]
 
-    # Normalize both score distributions
-    bm25_scores_norm = min_max_normalize(
-        bm25_scores
-    )
-
-    semantic_scores_norm = (
-        min_max_normalize(
-            semantic_scores
-        )
-    )
-
-    # Hybrid score
-    hybrid_scores = [
-        lexical_weight * bm25_score + semantic_weight * semantic_score
-        for bm25_score, semantic_score in zip(
-            bm25_scores_norm,
-            semantic_scores_norm,
-        )
-    ]
-
-    ranked = sorted(
-        zip(
-            chunks,
-            hybrid_scores,
-            bm25_scores,
-            semantic_scores,
-        ),
+    semantic_ranked = sorted(
+        zip(chunks, semantic_scores),
         key=lambda x: x[1],
         reverse=True,
     )
-    candidate_results = ranked[:candidate_count]
 
+    semantic_candidates = semantic_ranked[
+        :candidate_count
+    ]
 
-    # Cast results
-    candidate_results_casted = []
-    for chunk, hybrid_score, bm25_score, semantic_score, in candidate_results:
-        new_result_datapoint = {
+    # Merge + deduplicate
+    candidate_dict = {}
+
+    for chunk, score in lexical_candidates:
+        key = (
+            chunk["url"],
+            chunk["chunk_id"],
+        )
+
+        candidate_dict[key] = {
             "url": chunk["url"],
             "chunk_id": chunk["chunk_id"],
-            "hybrid_score": float(hybrid_score),
-            "lexical_score": float(bm25_score),
-            "semantic_score": float(semantic_score),
             "chunk_text": chunk["chunk_text"],
+            "lexical_score": float(score),
+            "semantic_score": None,
         }
-        candidate_results_casted.append(new_result_datapoint)
 
-    reranked_results = rerank_chunks(query, candidate_results_casted, openai_client)
-    top_results = reranked_results[:top_k]
+    for chunk, score in semantic_candidates:
+        key = (
+            chunk["url"],
+            chunk["chunk_id"],
+        )
 
-    return top_results
+        if key in candidate_dict:
+            candidate_dict[key][
+                "semantic_score"
+            ] = float(score)
+        else:
+            candidate_dict[key] = {
+                "url": chunk["url"],
+                "chunk_id": chunk["chunk_id"],
+                "chunk_text": chunk["chunk_text"],
+                "lexical_score": None,
+                "semantic_score": float(score),
+            }
+
+    candidate_results = list(
+        candidate_dict.values()
+    )
+
+    # Rerank
+    reranked_results = rerank_chunks(
+        query,
+        candidate_results,
+        openai_client,
+    )
+
+    return reranked_results[:top_k]
