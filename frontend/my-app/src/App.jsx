@@ -14,6 +14,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
 
+  async function sendPresetMessage(content) {
+    inputRef.current.value = content;
+    await sendMessage();
+  }
+
   async function sendMessage() {
     const content = inputRef.current.value.trim();
 
@@ -115,6 +120,78 @@ export default function App() {
 
         {/* MESSAGES */}
         <div className="messages">
+
+          {messages.length === 0 && (
+            <div className="empty-chat">
+
+              <div className="empty-chat-content">
+
+                <div className="assistant-avatar">
+                  N
+                </div>
+
+                <h2 className="empty-chat-title">
+                  ¡Hola! Soy NauAI 👋
+                </h2>
+
+                <p className="empty-chat-subtitle">
+                  Puedo ayudarte a encontrar información sobre cursos,
+                  torneos, formas de contacto y cualquier contenido de Nau64.
+                </p>
+
+                <div className="suggestion-grid">
+
+                  <button
+                    className="suggestion-card"
+                    onClick={() =>
+                      sendPresetMessage(
+                        "¿Qué cursos hay disponibles en la academia?"
+                      )
+                    }
+                  >
+                    📚 Ver cursos disponibles
+                  </button>
+
+                  <button
+                    className="suggestion-card"
+                    onClick={() =>
+                      sendPresetMessage(
+                        "¿Cuáles han sido los últimos torneos realizados en Nau64? ¿Podrías mostrármelos en una tabla?"
+                      )
+                    }
+                  >
+                    🏆 Ver torneos realizados
+                  </button>
+
+                  <button
+                    className="suggestion-card"
+                    onClick={() =>
+                      sendPresetMessage(
+                        "En qué horarios se realizan clases en la academia? ¿En qué horario puedo pasar a visitar?"
+                      )
+                    }
+                  >
+                    🕜 Ver horarios
+                  </button>
+
+                  <button
+                    className="suggestion-card"
+                    onClick={() =>
+                      sendPresetMessage(
+                        "¿Cómo puedo contactarme con la academia? ¿Dónde están ubicados?"
+                      )
+                    }
+                  >
+                    📱 Obtener formas de contacto
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
           {messages.map((m, i) => (
             <div
               key={i}
@@ -122,15 +199,18 @@ export default function App() {
             >
               <div className="bubble">
                 {
-                  m.role == "user" && m.content || 
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {m.content}
-                  </ReactMarkdown>
+                  m.role === "user"
+                    ? m.content
+                    : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {m.content}
+                      </ReactMarkdown>
+                    )
                 }
               </div>
             </div>
           ))}
-
+          
           {loading && (
             <div className="message assistant">
               <div className="bubble typing">
@@ -138,8 +218,8 @@ export default function App() {
                 <span>Pensando...</span>
               </div>
             </div>
-          )}
-        </div>
+          )}        
+          </div>
 
         {/* INPUT */}
         <div className="input-container">
