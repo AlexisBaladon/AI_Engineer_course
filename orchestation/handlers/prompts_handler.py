@@ -9,8 +9,8 @@ The inputs you will recieve are:
 
 The output you should provide must satisfy the following requirements:
 - It uses the current converstaion and documents as the only source of information.
-- It followes good costumer service practices.
-- It shows data the most visual way possible, including emojis or Markdown.""".strip()
+- It uses urls provided in the prompt to point the user to the official website.
+- It shows data the most visual way possible, including emojis or Markdown (tables, bulletpoints, titles, etc.).""".strip()
 
 user_prompt = """
 Query:
@@ -25,20 +25,27 @@ system_prompt = system_prompt.format(expertise_area=EXPERTISE_AREA)
 def fill_user_prompt(
     query: str,
     documents: list[str],
+    urls: list[str],
     user_prompt=user_prompt,
 ):
-    # Document
-    document_string = ""
-    first_document_index = 1
-    document_length = len(documents)
-    for idx, document in enumerate(documents, start=first_document_index):
-        document_string += f"{idx}. {document}"
-        if idx < document_length:
-            document_string += "\n"
+    if len(documents) != len(urls):
+        raise ValueError(
+            "documents and urls must have the same length"
+        )
 
-    # Final string
+    # Build markdown document blocks
+    document_blocks = []
+
+    for idx, (doc, url) in enumerate(zip(documents, urls), start=1):
+        block = f"""### Document [{idx}]\\nnSource: {url}\n\nContent: {doc}"""
+        document_blocks.append(block)
+
+    document_string = "\n\n".join(document_blocks)
+
+    # Final structured markdown prompt
     final_user_prompt = user_prompt.format(
-        query=query, 
-        documents=document_string
+        query=query,
+        documents=document_string,
     )
+
     return final_user_prompt

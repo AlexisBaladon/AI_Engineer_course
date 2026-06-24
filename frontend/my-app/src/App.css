@@ -256,3 +256,16 @@ body {
   overflow-x: auto;
   white-space: nowrap;
 }
+
+.bubble a {
+  color: #93c5fd;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(147, 197, 253, 0.4);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.bubble a:hover {
+  color: #ffffff;
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+}

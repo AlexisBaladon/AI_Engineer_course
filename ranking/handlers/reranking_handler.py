@@ -29,19 +29,10 @@ def rerank_chunks(
     docs = []
 
     for i, chunk in enumerate(chunks):
-        docs.append(
-            f"[{i}]\n{chunk['chunk_text']}"
-        )
+        docs.append(f"[{i}]\n{chunk['chunk_text']}")
 
     prompt = reranking_prompt.format(query=query, documents=chr(10).join(docs))
-
-    response = openai_client.responses.create(
-        model=model,
-        input=prompt,
-    )
-
-    ranking = json.loads(
-        response.output_text
-    )
+    response = openai_client.responses.create(model=model, input=prompt)
+    ranking = json.loads(response.output_text)
 
     return [chunks[i] for i in ranking]

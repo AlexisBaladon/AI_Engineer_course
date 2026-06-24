@@ -30,13 +30,14 @@ CORS(app, origins=["http://localhost:5173"])
 
 
 class RAGState(TypedDict):
+    query: str
     user_conversation: list[dict]
     stream: bool
 
     retrieved_chunks: list
-    documents: list[str]
 
     conversation_for_generation: list[dict]
+    
     answer: dict
     answer_stream: object
 
@@ -66,19 +67,14 @@ def retrieve_node(state: RAGState):
     retrieved_chunks = retrieval_response.json()
 
     return {
+        "query": last_user_message,
         "retrieved_chunks": retrieved_chunks,
-        "documents": [
-            chunk["chunk_text"]
-            for chunk in retrieved_chunks
-        ],
     }
 
 
 def rank_node(state: RAGState):
-    last_user_message = get_last_message(state["user_conversation"])
-
     payload = {
-        "query": last_user_message,
+        "query": state["query"],
         "chunks": state["retrieved_chunks"],
         "top_k": 3,
     }
@@ -95,16 +91,14 @@ def rank_node(state: RAGState):
 
     return {
         "retrieved_chunks": ranked_chunks,
-        "documents": [
-            chunk["chunk_text"]
-            for chunk in ranked_chunks
-        ],
     }
 
 
 def build_prompt_node(state: RAGState):
-    last_user_message = get_last_message(state["user_conversation"])
-    rag_prompt = fill_user_prompt(last_user_message, state["documents"])
+    chunks = state["retrieved_chunks"]
+    documents =  [chunk["chunk_text"] for chunk in chunks]
+    urls = [chunk["url"] for chunk in chunks]
+    rag_prompt = fill_user_prompt(state["query"], documents, urls)
     
     conversation_for_generation = [
         {
