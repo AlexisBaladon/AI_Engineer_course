@@ -1,5 +1,4 @@
 from flask import Flask, jsonify, request
-from langsmith import traceable
 from openai import OpenAI
 
 from handlers.retrieval_handler import (
@@ -21,7 +20,6 @@ bm25 = build_bm25_index(chunks)
 openai_client = OpenAI()
 
 
-@traceable(run_type="tool", name="Retrieve Context")
 def retrieve_and_trace(query: str, top_k=5):
     if not query:
         return {

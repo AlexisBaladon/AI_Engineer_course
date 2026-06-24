@@ -1,5 +1,4 @@
 from flask import Flask, jsonify, request
-from langsmith import traceable
 from openai import OpenAI
 
 from handlers.reranking_handler import (
@@ -18,7 +17,6 @@ app = Flask(__name__)
 openai_client = OpenAI()
 
 
-@traceable(run_type="tool", name="Rerank documents")
 def rank_and_trace(query: str, chunks: list[dict], top_k=3):
     if query is None:
         return {

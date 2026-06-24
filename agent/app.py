@@ -1,5 +1,4 @@
 from flask import Flask, jsonify, request, Response, stream_with_context
-from langsmith import traceable
 from langchain_core.messages import (
 HumanMessage,
 AIMessage,
@@ -50,7 +49,6 @@ def build_messages(raw_messages):
     return messages
 
 
-@traceable(run_type="llm", name="Generate Answer")
 def generate_and_trace(messages):
     response = llm.invoke(messages)
 

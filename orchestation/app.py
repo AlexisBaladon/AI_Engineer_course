@@ -52,7 +52,6 @@ def get_last_message(user_conversation: list[dict]):
     )
 
 
-@traceable(name="Retrieve documents")
 def retrieve_node(state: RAGState):
     last_user_message = get_last_message(state["user_conversation"])
 
@@ -75,7 +74,6 @@ def retrieve_node(state: RAGState):
     }
 
 
-@traceable(name="Ranking of documents")
 def rank_node(state: RAGState):
     last_user_message = get_last_message(state["user_conversation"])
 
@@ -104,7 +102,6 @@ def rank_node(state: RAGState):
     }
 
 
-@traceable(name="Build Prompt")
 def build_prompt_node(state: RAGState):
     last_user_message = get_last_message(state["user_conversation"])
     rag_prompt = fill_user_prompt(last_user_message, state["documents"])
@@ -126,7 +123,6 @@ def build_prompt_node(state: RAGState):
     return {"conversation_for_generation": conversation_for_generation}
 
 
-@traceable(name="Generate Answer")
 def generate_node(state: RAGState):
     payload = {
         "messages": state["conversation_for_generation"],
