@@ -1,4 +1,5 @@
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 import { useRef, useState } from "react";
 import Spinner from "./Spinner";
@@ -120,7 +121,12 @@ export default function App() {
               className={`message ${m.role}`}
             >
               <div className="bubble">
-                {m.role == "user" && m.content || <ReactMarkdown>{m.content}</ReactMarkdown>}
+                {
+                  m.role == "user" && m.content || 
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.content}
+                  </ReactMarkdown>
+                }
               </div>
             </div>
           ))}
