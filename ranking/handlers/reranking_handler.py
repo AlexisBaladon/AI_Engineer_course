@@ -23,7 +23,7 @@ def rerank_chunks(
     query: str,
     chunks: list[dict],
     openai_client: OpenAI,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4.1-mini",
     reranking_prompt=RERANKING_PROMPT,
 ):
     docs = []
