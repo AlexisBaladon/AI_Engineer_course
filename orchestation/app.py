@@ -13,6 +13,8 @@ from constants import (
     DEBUG,
     RETRIEVAL_HOST,
     RETRIEVAL_PORT,
+    RANKING_HOST,
+    RANKING_PORT,
     GENERATION_HOST,
     GENERATION_PORT,
 )
@@ -50,13 +52,13 @@ def get_last_message(user_conversation: list[dict]):
     )
 
 
-@traceable(name="Retrieve Context")
+@traceable(name="Retrieve documents")
 def retrieve_node(state: RAGState):
     last_user_message = get_last_message(state["user_conversation"])
 
     retrieval_response = requests.get(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
-        params={"query": last_user_message},
+        params={"query": last_user_message, "top_k": 5},
         timeout=30,
     )
 
@@ -69,6 +71,35 @@ def retrieve_node(state: RAGState):
         "documents": [
             chunk["chunk_text"]
             for chunk in retrieved_chunks
+        ],
+    }
+
+
+@traceable(name="Ranking of documents")
+def rank_node(state: RAGState):
+    last_user_message = get_last_message(state["user_conversation"])
+
+    payload = {
+        "query": last_user_message,
+        "chunks": state["retrieved_chunks"],
+        "top_k": 3,
+    }
+
+    ranked_response = requests.post(
+        f"http://{RANKING_HOST}:{RANKING_PORT}/rank",
+        json=payload,
+        timeout=30,
+    )
+
+    ranked_response.raise_for_status()
+
+    ranked_chunks = ranked_response.json()
+
+    return {
+        "retrieved_chunks": ranked_chunks,
+        "documents": [
+            chunk["chunk_text"]
+            for chunk in ranked_chunks
         ],
     }
 
@@ -133,10 +164,12 @@ def generate_node(state: RAGState):
 def build_graph():
     graph_builder = StateGraph(RAGState)
     graph_builder.add_node("retrieve", retrieve_node)
+    graph_builder.add_node("rank", rank_node)
     graph_builder.add_node("build_prompt", build_prompt_node)
     graph_builder.add_node("generate", generate_node)
     graph_builder.add_edge(START, "retrieve")
-    graph_builder.add_edge("retrieve", "build_prompt")
+    graph_builder.add_edge("retrieve", "rank")
+    graph_builder.add_edge("rank", "build_prompt")
     graph_builder.add_edge("build_prompt", "generate")
     graph_builder.add_edge("generate", END)
     return graph_builder.compile()

@@ -45,73 +45,12 @@ def cosine_similarity(a, b):
     )
 
 
-def min_max_normalize(values):
-    min_v = min(values)
-    max_v = max(values)
-
-    if max_v == min_v:
-        return [1.0] * len(values)
-
-    return [
-        (v - min_v) / (max_v - min_v)
-        for v in values
-    ]
-
-
-RERANKING_PROMPT = """
-Query:
-{query}
-
-Documents:
-{documents}
-
-Rank all documents from most relevant to least relevant.
-
-Return ONLY a JSON array of indices.
-
-Example:
-[3, 1, 0, 2]
-"""
-
-
-def rerank_chunks(
-    query: str,
-    chunks: list[dict],
-    openai_client: OpenAI,
-    model: str = "gpt-5-mini",
-    reranking_prompt=RERANKING_PROMPT,
-):
-    docs = []
-
-    for i, chunk in enumerate(chunks):
-        docs.append(
-            f"[{i}]\n{chunk['chunk_text']}"
-        )
-
-    prompt = reranking_prompt.format(query=query, documents=chr(10).join(docs))
-
-    response = openai_client.responses.create(
-        model=model,
-        input=prompt,
-    )
-
-    ranking = json.loads(
-        response.output_text
-    )
-
-    return [
-        chunks[i]
-        for i in ranking
-    ]
-
-
 def search(
     query: str,
     bm25: BM25Okapi,
     openai_client: OpenAI,
-    chunks,
-    candidate_count: int = 10,
-    top_k: int = 5,
+    chunks: list[dict],
+    top_k: int = 10,
     embedding_model: str = "text-embedding-3-small",
 ):
     # Lexical retrieval
@@ -127,9 +66,7 @@ def search(
         reverse=True,
     )
 
-    lexical_candidates = lexical_ranked[
-        :candidate_count
-    ]
+    lexical_candidates = lexical_ranked[:top_k]
 
     # Semantic retrieval
     query_embedding = (
@@ -141,6 +78,7 @@ def search(
         .embedding
     )
 
+    # TODO: Use sklearn for faster calcuation
     semantic_scores = [
         cosine_similarity(
             query_embedding,
@@ -155,9 +93,7 @@ def search(
         reverse=True,
     )
 
-    semantic_candidates = semantic_ranked[
-        :candidate_count
-    ]
+    semantic_candidates = semantic_ranked[:top_k]
 
     # Merge + deduplicate
     candidate_dict = {}
@@ -183,9 +119,7 @@ def search(
         )
 
         if key in candidate_dict:
-            candidate_dict[key][
-                "semantic_score"
-            ] = float(score)
+            candidate_dict[key]["semantic_score"] = float(score)
         else:
             candidate_dict[key] = {
                 "url": chunk["url"],
@@ -199,11 +133,4 @@ def search(
         candidate_dict.values()
     )
 
-    # Rerank
-    reranked_results = rerank_chunks(
-        query,
-        candidate_results,
-        openai_client,
-    )
-
-    return reranked_results[:top_k]
+    return candidate_results
