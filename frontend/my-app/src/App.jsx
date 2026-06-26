@@ -3,16 +3,22 @@ import remarkGfm from 'remark-gfm'
 
 import { useRef, useState } from "react";
 import Spinner from "./Spinner";
-
+import Login from "./Login";
 import "./App.css";
 
 
 export default function App() {
   const inputRef = useRef(null);
-
+  
+  const [showLogin, setShowLogin] = useState(false);  
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [user, setUser] = useState(null);
+
+  function handleLogout() {
+    setUser(null);
+  }
 
   async function sendPresetMessage(content) {
     inputRef.current.value = content;
@@ -99,7 +105,7 @@ export default function App() {
         ...prev,
         {
           role: "assistant",
-          content: "Error connecting to backend.",
+          content: "Error conectándose al servidor. Por favor intente de nuevo o pruebe más tarde.",
         },
       ]);
     } finally {
@@ -117,6 +123,18 @@ export default function App() {
           <div className="logo">NauAI</div>
           <div className="subtitle">El agente oficial de Nau64</div>
         </div>
+
+        {
+          showLogin && 
+          <Login
+            onCancel={() => setShowLogin(false)}
+            onLogin={(user) => {
+                setUser(user);
+                setShowLogin(false);
+            }}
+        />}
+
+         
 
         {/* MESSAGES */}
         <div className="messages">
@@ -242,6 +260,40 @@ export default function App() {
         </div>
 
       </div>
+          <div className="top-bar">
+
+            {!user ? (
+              <button
+                className="login-button"
+                onClick={() => setShowLogin(true)}
+              >
+                Iniciar sesión
+              </button>
+            ) : (
+              <div className="user-menu">
+
+                <div className="user-chip">
+                  <div className="avatar">
+                    {user.username[0].toUpperCase()}
+                  </div>
+
+                  <span className="username">
+                    {user.username}
+                  </span>
+
+                  <button
+                    className="logout-button"
+                    onClick={handleLogout}
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+        </div>
+
     </div>
   );
 }
