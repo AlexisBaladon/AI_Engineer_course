@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Spinner from "./Spinner";
 import Login from "./Login";
 import "./App.css";
@@ -15,8 +15,48 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [user, setUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  function handleLogout() {
+   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await fetch(
+          "http://localhost:1234/auth/status",
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          setUser(null);
+          return;
+        }
+
+        const data = await response.json();
+
+        setUser({
+          username: data.username,
+        });
+      } catch (err) {
+        console.error(err);
+        setUser(null);
+      } finally {
+        setCheckingAuth(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  if (checkingAuth) {
+    return <div>Loading...</div>;
+  }
+
+  async function handleLogout() {
+    await fetch("http://localhost:1234/logout", {
+        method: "POST",
+        credentials: "include",
+    });
     setUser(null);
   }
 
@@ -48,6 +88,7 @@ export default function App() {
         },
         body: JSON.stringify({
           messages: updatedMessages,
+          role: user ? "admin":"user", // TODO: Verify that user is logged using backend
           stream: true,
         }),
       });

@@ -1,26 +1,55 @@
 import { useState } from "react";
+import "./Login.css"
+
 
 export default function Login({ onLogin, onCancel }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+
+    setError("");
 
     if (!username.trim()) {
       setError("Por favor ingresa un nombre de usuario.");
       return;
     }
 
-    if (password !== "123") {
-      setError("Contraseña incorrecta.");
+    if (!password.trim()) {
+      setError("Por favor ingresa una contraseña.");
       return;
     }
 
-    onLogin({
-      username: username.trim(),
-    });
+    try {
+      const response = await fetch("http://localhost:1234/login", {
+        method: "POST",
+        credentials: "include", // Important: stores the auth cookie
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError("Error al iniciar sesión.");
+        return;
+      }
+
+      onLogin({
+        username: username.trim(),
+      });
+
+    } catch (err) {
+      console.error(err);
+      setError("No fue posible conectarse al servidor.");
+    }
   }
 
   return (

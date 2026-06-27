@@ -32,6 +32,7 @@ CORS(app, origins=["http://localhost:5173"])
 class RAGState(TypedDict):
     query: str
     user_conversation: list[dict]
+    role: str
     stream: bool
 
     retrieved_chunks: list
@@ -95,10 +96,12 @@ def rank_node(state: RAGState):
 
 
 def build_prompt_node(state: RAGState):
+    role = state["role"]
     chunks = state["retrieved_chunks"]
     documents =  [chunk["chunk_text"] for chunk in chunks]
+    images = [chunk["images"] for chunk in chunks]
     urls = [chunk["url"] for chunk in chunks]
-    rag_prompt = fill_user_prompt(state["query"], documents, urls)
+    rag_prompt = fill_user_prompt(state["query"], documents, urls, images, role)
     
     conversation_for_generation = [
         {
@@ -168,10 +171,11 @@ rag_graph = build_graph()
 
 
 @traceable(name="Main Chain")
-def answer_query_and_trace(messages: list[str], stream: bool = False):
+def answer_query_and_trace(messages: list[str], role="user", stream: bool = False):
     result = rag_graph.invoke({
         "user_conversation": messages,
         "stream": stream,
+        "role": role,
     })
 
     if stream:
@@ -184,10 +188,11 @@ def run_chain():
     body = request.get_json()
 
     messages = body.get("messages", [])
+    role = body.get("role", "user")
     stream = body.get("stream", False)
 
     if stream:
-        raw_response, _ = answer_query_and_trace(messages, stream=True)
+        raw_response, _ = answer_query_and_trace(messages, role, stream=True)
 
         def generate_chunks():
             for chunk in raw_response.iter_content(chunk_size=None):
@@ -199,7 +204,7 @@ def run_chain():
             content_type=raw_response.headers.get("Content-Type", "text/event-stream"),
         )
 
-    result, status_code = answer_query_and_trace(messages, stream=False)
+    result, status_code = answer_query_and_trace(messages, role, stream=False)
     return jsonify(result), status_code
 
 

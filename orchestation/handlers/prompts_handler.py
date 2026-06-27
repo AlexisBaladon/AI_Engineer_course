@@ -4,13 +4,14 @@ system_prompt = """
 You are a chatbot, expert in {expertise_area}.
 
 The inputs you will recieve are:
-- A list of documents.
+- A list of documents, and additional information about them.
 - A query asking about information contained in them.
 
 The output you should provide must satisfy the following requirements:
 - It uses the current converstaion and documents as the only source of information.
 - It uses urls provided in the prompt to point the user to the official website.
-- It shows data the most visual way possible, including emojis or Markdown (tables, bulletpoints, titles, etc.).""".strip()
+- The user may or may not provide images in the prompt. If he does, you may want to add a couple of them in your response.
+- It shows data the most visual way possible, including emojis or Markdown (tables, bulletpoints, titles, images, etc.).""".strip()
 
 user_prompt = """
 Query:
@@ -22,10 +23,13 @@ Documents:
 
 system_prompt = system_prompt.format(expertise_area=EXPERTISE_AREA)
 
+
 def fill_user_prompt(
     query: str,
     documents: list[str],
     urls: list[str],
+    images: list[list[str]],
+    role: str,
     user_prompt=user_prompt,
 ):
     if len(documents) != len(urls):
@@ -33,16 +37,39 @@ def fill_user_prompt(
             "documents and urls must have the same length"
         )
 
-    # Build markdown document blocks
+    if len(documents) != len(images):
+        raise ValueError(
+            "documents and images must have the same length"
+        )
+
     document_blocks = []
 
-    for idx, (doc, url) in enumerate(zip(documents, urls), start=1):
-        block = f"""### Document [{idx}]\\nnSource: {url}\n\nContent: {doc}"""
+    for idx, (doc, url, image_urls) in enumerate(
+        zip(documents, urls, images),
+        start=1,
+    ):
+        block = (
+            f"### Document [{idx}]\n\n"
+            f"Source: {url}\n\n"
+            f"Content:\n{doc}"
+        )
+
+        if role == "admin" and image_urls:
+            image_block = "\n".join(
+                f"- {image_url}"
+                for image_url in image_urls
+            )
+
+            block += (
+                "\n\n"
+                "Images:\n"
+                f"{image_block}"
+            )
+
         document_blocks.append(block)
 
     document_string = "\n\n".join(document_blocks)
 
-    # Final structured markdown prompt
     final_user_prompt = user_prompt.format(
         query=query,
         documents=document_string,

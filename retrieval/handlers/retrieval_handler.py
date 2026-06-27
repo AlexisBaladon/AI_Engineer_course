@@ -1,5 +1,7 @@
 import csv
 import json
+from collections import defaultdict
+from copy import deepcopy
 
 from rank_bm25 import BM25Okapi
 from openai import OpenAI
@@ -10,18 +12,34 @@ def tokenize(sentence: str):
     return sentence.lower().split()
 
 
-def load_chunks(csv_file: str):
+def load_chunks(csv_file: str, images_file: str):
+    """
+    Loads chunk metadata and associates every chunk with the
+    images found on the page it belongs to.
+    """
+
+    images_by_url = defaultdict(list)
+
+    with open(images_file, "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            images_by_url[row["page_url"]].append(row["image_url"])
+
     chunks = []
 
     with open(csv_file, "r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
 
         for row in reader:
+            url = row["url"]
+
             chunks.append({
-                "url": row["url"],
+                "url": url,
                 "chunk_id": row["chunk_id"],
                 "chunk_text": row["chunk_text"],
-                "chunk_embedding": json.loads(row["embedding"])
+                "chunk_embedding": json.loads(row["embedding"]),
+                "images": images_by_url.get(url, []),
             })
 
     return chunks
@@ -105,9 +123,7 @@ def search(
         )
 
         candidate_dict[key] = {
-            "url": chunk["url"],
-            "chunk_id": chunk["chunk_id"],
-            "chunk_text": chunk["chunk_text"],
+            **chunk,
             "lexical_score": float(score),
             "semantic_score": None,
         }
@@ -122,9 +138,7 @@ def search(
             candidate_dict[key]["semantic_score"] = float(score)
         else:
             candidate_dict[key] = {
-                "url": chunk["url"],
-                "chunk_id": chunk["chunk_id"],
-                "chunk_text": chunk["chunk_text"],
+                **chunk,
                 "lexical_score": None,
                 "semantic_score": float(score),
             }
