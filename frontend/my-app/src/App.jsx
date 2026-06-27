@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { useRef, useState, useEffect } from "react";
 import Spinner from "./Spinner";
 import Login from "./Login";
+import LoadingScreen from "./LoadingScreen";
 import "./App.css";
 
 
@@ -49,7 +50,7 @@ export default function App() {
   }, []);
 
   if (checkingAuth) {
-    return <div>Loading...</div>;
+    return <LoadingScreen></LoadingScreen>;
   }
 
   async function handleLogout() {
