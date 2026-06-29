@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request, Response, stream_with_context
 from langchain_core.messages import (
-HumanMessage,
-AIMessage,
-SystemMessage,
+    HumanMessage,
+    AIMessage,
+    SystemMessage,
 )
 from langchain_openai import ChatOpenAI
 import json
@@ -13,9 +13,9 @@ from constants import HOST, PORT, DEBUG
 app = Flask(__name__)
 
 llm = ChatOpenAI(
-model="gpt-4.1-mini",
-temperature=0,
-streaming=True,
+    model="gpt-4.1-mini",
+    temperature=0,
+    streaming=True,
 )
 
 
