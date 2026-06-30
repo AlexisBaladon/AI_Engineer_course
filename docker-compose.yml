@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+
+  frontend:
+    build:
+      context: ./frontend/my-app
+    container_name: nau_frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - orchestation
+      - authentication
+    restart: unless-stopped
+
+  orchestation:
+    build:
+      context: ./orchestation
+    container_name: nau_orchestation
+    ports:
+      - "1232:1232"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1232
+
+      RETRIEVAL_HOST: retrieval
+      RETRIEVAL_PORT: 1230
+
+      RERANKER_HOST: reranker
+      RERANKER_PORT: 1233
+
+      AGENT_HOST: agent
+      AGENT_PORT: 1231
+
+      AUTHENTICATION_HOST: authentication
+      AUTHENTICATION_PORT: 1234
+    depends_on:
+      - retrieval
+      - ranking
+      - agent
+      - authentication
+    restart: unless-stopped
+
+  retrieval:
+    build:
+      context: ./retrieval
+    container_name: nau_retrieval
+    ports:
+      - "1230:1230"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1230
+    restart: unless-stopped
+
+  ranking:
+    build:
+      context: ./ranking
+    container_name: nau_ranking
+    ports:
+      - "1233:1233"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1233
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: ./agent
+    container_name: nau_agent
+    ports:
+      - "1231:1231"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1231
+    restart: unless-stopped
+
+  authentication:
+    build:
+      context: ./authentication
+    container_name: nau_authentication
+    ports:
+      - "1234:1234"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1234
+    restart: unless-stopped
+
+networks:
+  default:
+    name: nau_ai
