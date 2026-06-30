@@ -17,6 +17,8 @@ from constants import (
     RANKING_PORT,
     GENERATION_HOST,
     GENERATION_PORT,
+    HOOK_HOST,
+    HOOK_PORT,
 )
 
 from handlers.prompts_handler import (
@@ -26,7 +28,7 @@ from handlers.prompts_handler import (
 
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, origins=[f"http://{HOOK_HOST}:{HOOK_PORT}"])
 
 
 class RAGState(TypedDict):

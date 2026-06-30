@@ -17,3 +17,6 @@ RANKING_PORT = os.getenv("RANKING_PORT", 1233)
 
 GENERATION_HOST = os.getenv("GENERATION_HOST", "localhost")
 GENERATION_PORT = os.getenv("GENERATION_PORT", 1231)
+
+HOOK_HOST = os.getenv("HOOK_HOST", "localhost")
+HOOK_PORT = os.getenv("HOOK_PORT", 1235)

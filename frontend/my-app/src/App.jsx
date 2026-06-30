@@ -8,6 +8,10 @@ import LoadingScreen from "./LoadingScreen";
 import "./App.css";
 
 
+const BACKEND_HOST = import.meta.env.BACKEND_HOST || "localhost"
+const BACKEND_PORT = import.meta.env.BACKEND_PORT || 1235
+
+
 export default function App() {
   const inputRef = useRef(null);
   
@@ -18,11 +22,28 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-   useEffect(() => {
-    async function checkAuth() {
+
+  async function login(username, password) {
+      const response = await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/login`, {
+        method: "POST",
+        credentials: "include", // Important: stores the auth cookie
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+      });
+
+      return response
+  }
+
+
+  async function checkAuth() {
       try {
         const response = await fetch(
-          "http://localhost:1234/auth/status",
+          `http://${BACKEND_HOST}:${BACKEND_PORT}/auth/status`,
           {
             credentials: "include",
           }
@@ -46,15 +67,8 @@ export default function App() {
       }
     }
 
-    checkAuth();
-  }, []);
-
-  if (checkingAuth) {
-    return <LoadingScreen></LoadingScreen>;
-  }
-
   async function handleLogout() {
-    await fetch("http://localhost:1234/logout", {
+    await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/logout`, {
         method: "POST",
         credentials: "include",
     });
@@ -82,14 +96,13 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:1232/run_chain", {
+      const res = await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           messages: updatedMessages,
-          role: user ? "admin":"user", // TODO: Verify that user is logged using backend
           stream: true,
         }),
       });
@@ -156,6 +169,14 @@ export default function App() {
     }
   }
 
+   useEffect(() => {
+    checkAuth();
+  }, []);
+
+  if (checkingAuth) {
+    return <LoadingScreen></LoadingScreen>;
+  }
+
   return (
     <div className="app">
       <div className="chat-container">
@@ -174,6 +195,7 @@ export default function App() {
                 setUser(user);
                 setShowLogin(false);
             }}
+            login={login}
         />}
 
          
@@ -216,7 +238,7 @@ export default function App() {
                     className="suggestion-card"
                     onClick={() =>
                       sendPresetMessage(
-                        "¿Cuáles han sido los últimos torneos realizados en Nau64? ¿Podrías mostrármelos en una tabla?"
+                        "¿Cuáles han sido los últimos torneos realizados en Nau64?"
                       )
                     }
                   >

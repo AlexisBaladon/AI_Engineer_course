@@ -11,10 +11,12 @@ from constants import (
     ADMIN_USER_USERNAME,
     ADMIN_USER_PASSWORD,
     ENCRYPTION_SECRET_KEY,
+    HOOK_HOST,
+    HOOK_PORT,
 )
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(app, origins=[f"http://{HOOK_HOST}:{HOOK_PORT}"], supports_credentials=True)
 
 
 def create_token(username: str) -> str:

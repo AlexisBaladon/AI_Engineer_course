@@ -2,43 +2,32 @@ import { useState } from "react";
 import "./Login.css"
 
 
-export default function Login({ onLogin, onCancel }) {
+export default function Login({ onLogin, onCancel, login }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loginError, setLoginError] = useState("");
 
-  async function handleSubmit(e) {
+
+  async function handleLoginSubmit(e) {
     e.preventDefault();
 
-    setError("");
+    setLoginError("");
 
     if (!username.trim()) {
-      setError("Por favor ingresa un nombre de usuario.");
+      setLoginError("Por favor ingresa un nombre de usuario.");
       return;
     }
 
     if (!password.trim()) {
-      setError("Por favor ingresa una contraseña.");
+      setLoginError("Por favor ingresa una contraseña.");
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:1234/login", {
-        method: "POST",
-        credentials: "include", // Important: stores the auth cookie
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-        }),
-      });
-
-      const data = await response.json();
+      const response = await login(username, password)
 
       if (!response.ok) {
-        setError("Error al iniciar sesión.");
+        setLoginError("Error al iniciar sesión.");
         return;
       }
 
@@ -48,9 +37,10 @@ export default function Login({ onLogin, onCancel }) {
 
     } catch (err) {
       console.error(err);
-      setError("No fue posible conectarse al servidor.");
+      setLoginError("No fue posible conectarse al servidor.");
     }
   }
+  
 
   return (
     <div className="login-overlay" onClick={onCancel}>
@@ -77,7 +67,7 @@ export default function Login({ onLogin, onCancel }) {
         </p>
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLoginSubmit}>
 
           <label>Usuario</label>
           <input
@@ -86,7 +76,7 @@ export default function Login({ onLogin, onCancel }) {
             placeholder="Ingresa tu nombre de usuario"
             onChange={(e) => {
               setUsername(e.target.value);
-              setError("");
+              setLoginError("");
             }}
           />
 
@@ -97,13 +87,13 @@ export default function Login({ onLogin, onCancel }) {
             placeholder="Ingresa tu contraseña"
             onChange={(e) => {
               setPassword(e.target.value);
-              setError("");
+              setLoginError("");
             }}
           />
 
-          {error && (
+          {loginError && (
             <div className="login-error">
-              {error}
+              {loginError}
             </div>
           )}
 

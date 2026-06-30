@@ -11,6 +11,27 @@ services:
     env_file:
       - .env
     depends_on:
+      - hook
+    restart: unless-stopped
+
+  hook:
+    build:
+      context: ./hook
+    container_name: nau_hook
+    ports:
+      - "1235:1235"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1235
+
+      ORCHESTRATION_HOST: orchestation
+      ORCHESTRATION_PORT: 1232
+
+      AUTHENTICATION_HOST: authentication
+      AUTHENTICATION_PORT: 1234
+    depends_on:
       - orchestation
       - authentication
     restart: unless-stopped
