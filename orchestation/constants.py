@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-HOST = os.getenv("HOST", "0.0.0.0")
-PORT = os.getenv("PORT", 1232)
-DEBUG = os.getenv("DEBUG", True)
+HOST = "0.0.0.0"
+PORT = 1232
+DEBUG = (os.getenv("DEBUG", "true").lower() == "true")
+
 
 RETRIEVAL_HOST = os.getenv("RETRIEVAL_HOST", "localhost")
 RETRIEVAL_PORT = os.getenv("RETRIEVAL_PORT", 1230)

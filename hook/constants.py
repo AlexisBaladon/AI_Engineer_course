@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-HOST = os.getenv("HOST", "0.0.0.0")
-PORT = os.getenv("PORT", 1235)
-DEBUG = os.getenv("DEBUG", True)
+HOST = "0.0.0.0"
+PORT = 1235
+DEBUG = (os.getenv("DEBUG", "true").lower() == "true")
 
 FRONTEND_HOST = os.getenv("FRONTEND_HOST", "localhost")
 FRONTEND_PORT = os.getenv("FRONTEND_PORT", 5173)
