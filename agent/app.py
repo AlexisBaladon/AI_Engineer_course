@@ -95,6 +95,11 @@ def generate():
     return jsonify(result), status_code
 
 
+@app.route("/health")
+def health():
+    return {"status": "ok"}, 200
+
+
 if __name__ == "__main__":
     app.run(
     host=HOST,

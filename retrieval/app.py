@@ -43,5 +43,10 @@ def retrieve():
     return jsonify(results), 200
 
 
+@app.route("/health")
+def health():
+    return {"status": "ok"}, 200
+
+
 if __name__ == "__main__":
     app.run(host=HOST, port=PORT, debug=DEBUG)
