@@ -51,10 +51,10 @@ services:
       RETRIEVAL_HOST: retrieval
       RETRIEVAL_PORT: 1230
 
-      RERANKER_HOST: reranker
-      RERANKER_PORT: 1233
+      RANKING_HOST: reranker
+      RANKING_PORT: 1233
 
-      AGENT_HOST: agent
+      GENERATION_HOST: agent
       AGENT_PORT: 1231
 
       AUTHENTICATION_HOST: authentication

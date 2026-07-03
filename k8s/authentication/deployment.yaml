@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: authentication
+  namespace: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: authentication
+
+  template:
+    metadata:
+      labels:
+        app: authentication
+
+    spec:
+      containers:
+        - name: authentication
+
+          image: alexisbaladon/nau_authentication:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1234
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1234"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1234
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1234

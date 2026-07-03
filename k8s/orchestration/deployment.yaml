@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: orchestration
+  namespace: nau-ai
+  labels:
+    app: orchestration
+    project: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: orchestration
+
+  template:
+    metadata:
+      labels:
+        app: orchestration
+
+    spec:
+      containers:
+        - name: orchestration
+
+          image: alexisbaladon/nau_orchestation:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1232
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1232"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1232
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1232

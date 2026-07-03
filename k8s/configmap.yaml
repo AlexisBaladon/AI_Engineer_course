@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: nau-config
+  namespace: nau-ai
+
+  labels:
+    project: nau-ai
+
+data:
+
+  # General configuration
+  DEBUG: "False"
+
+  # Frontend
+  FRONTEND_HOST: "localhost"
+  FRONTEND_PORT: "5173"
+
+  # Hook
+  HOOK_HOST: "localhost"
+  HOOK_PORT: "1235"
+
+  # Orchestration
+  ORCHESTRATION_HOST: "orchestration"
+  ORCHESTRATION_PORT: "1232"
+
+  # Authentication
+  AUTHENTICATION_HOST: "authentication"
+  AUTHENTICATION_PORT: "1234"
+
+  # Retrieval
+  RETRIEVAL_HOST: "retrieval"
+  RETRIEVAL_PORT: "1230"
+
+  # Ranking
+  RANKING_HOST: "ranking"
+  RANKING_PORT: "1233"
+
+  # Agent
+  GENERATION_HOST: "agent"
+  GENERATION_PORT: "1231"
