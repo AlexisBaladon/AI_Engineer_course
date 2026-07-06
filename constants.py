@@ -9,6 +9,7 @@ HOST = "0.0.0.0"
 PORT = 1235
 DEBUG = (os.getenv("DEBUG", "true").lower() == "true")
 
+FRONTEND_PREFIX = os.getenv("FRONTEND_PREFIX", "http")
 FRONTEND_HOST = os.getenv("FRONTEND_HOST", "localhost")
 FRONTEND_PORT = os.getenv("FRONTEND_PORT", 5173)
 

@@ -11,6 +11,7 @@ from constants import (
     ADMIN_USER_USERNAME,
     ADMIN_USER_PASSWORD,
     ENCRYPTION_SECRET_KEY,
+    FRONTEND_PREFIX,
     FRONTEND_HOST,
     FRONTEND_PORT,
     USER_ROLE,
@@ -45,7 +46,7 @@ from agent.agent_handler import (
 )
 
 app = Flask(__name__)
-CORS(app, origins=[f"http://{FRONTEND_HOST}:{FRONTEND_PORT}"], supports_credentials=True)
+CORS(app, origins=[f"{FRONTEND_PREFIX}://{FRONTEND_HOST}:{FRONTEND_PORT}"], supports_credentials=True)
 openai_client = OpenAI()
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25 = build_bm25_index(chunks)
