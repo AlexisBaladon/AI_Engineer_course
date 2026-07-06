@@ -8,8 +8,8 @@ import LoadingScreen from "./LoadingScreen";
 import "./App.css";
 
 
-const BACKEND_HOST = import.meta.env.BACKEND_HOST || "localhost"
-const BACKEND_PORT = import.meta.env.BACKEND_PORT || 1235
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || "localhost"
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 1235
 
 
 export default function App() {
