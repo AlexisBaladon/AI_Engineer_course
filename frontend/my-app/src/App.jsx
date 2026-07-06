@@ -8,7 +8,7 @@ import LoadingScreen from "./LoadingScreen";
 import "./App.css";
 
 
-const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || "localhost"
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || "http://localhost"
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 1235
 
 
@@ -24,7 +24,7 @@ export default function App() {
 
 
   async function login(username, password) {
-      const response = await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/login`, {
+      const response = await fetch(`${BACKEND_HOST}:${BACKEND_PORT}/login`, {
         method: "POST",
         credentials: "include", // Important: stores the auth cookie
         headers: {
@@ -43,7 +43,7 @@ export default function App() {
   async function checkAuth() {
       try {
         const response = await fetch(
-          `http://${BACKEND_HOST}:${BACKEND_PORT}/auth/status`,
+          `${BACKEND_HOST}:${BACKEND_PORT}/auth/status`,
           {
             credentials: "include",
           }
@@ -96,7 +96,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/chat`, {
+      const res = await fetch(`${BACKEND_HOST}:${BACKEND_PORT}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
