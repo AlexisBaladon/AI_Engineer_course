@@ -1,7 +1,6 @@
 import csv
 import json
 from collections import defaultdict
-from copy import deepcopy
 
 from rank_bm25 import BM25Okapi
 from openai import OpenAI

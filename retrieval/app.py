@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from openai import OpenAI
 
-from handlers.retrieval_handler import (
+from retrieval_handler import (
     load_chunks,
     build_bm25_index,
     search,
