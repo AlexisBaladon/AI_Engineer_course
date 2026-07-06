@@ -1,9 +1,10 @@
 from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
-import jwt
-import datetime
 
-
+from authentication_handler import (
+    create_token,
+    get_current_user,
+)
 from constants import (
     HOST,
     PORT,
@@ -19,37 +20,6 @@ app = Flask(__name__)
 CORS(app, origins=[f"http://{HOOK_HOST}:{HOOK_PORT}"], supports_credentials=True)
 
 
-def create_token(username: str) -> str:
-    payload = {
-        "user": username,
-        "exp": datetime.datetime.now(datetime.timezone.utc)
-        + datetime.timedelta(hours=2),
-    }
-
-    return jwt.encode(payload, ENCRYPTION_SECRET_KEY, algorithm="HS256")
-
-
-def decode_token(token: str):
-    return jwt.decode(
-        token,
-        ENCRYPTION_SECRET_KEY,
-        algorithms=["HS256"],
-    )
-
-
-def get_current_user():
-    token = request.cookies.get("auth_token")
-
-    if not token:
-        return None
-
-    try:
-        payload = decode_token(token)
-        return payload["user"]
-    except Exception:
-        return None
-
-
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -61,7 +31,7 @@ def login():
         username == ADMIN_USER_USERNAME
         and password == ADMIN_USER_PASSWORD
     ):
-        token = create_token(username)
+        token = create_token(username, encryption_secret_key=ENCRYPTION_SECRET_KEY)
 
         resp = make_response(
             jsonify({"message": "Login successful"})
@@ -95,7 +65,7 @@ def logout():
 
 @app.route("/auth/status", methods=["GET"])
 def auth_status():
-    user = get_current_user()
+    user = get_current_user(request.cookies, encryption_secret_key=ENCRYPTION_SECRET_KEY)
 
     if user is None:
         return jsonify({

@@ -1,10 +1,8 @@
-from typing import TypedDict
 import requests
 
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
 from langsmith import traceable
-from langgraph.graph import StateGraph, START, END
 
 
 from constants import (
@@ -20,29 +18,18 @@ from constants import (
     HOOK_HOST,
     HOOK_PORT,
 )
-
-from handlers.prompts_handler import (
+from prompts_handler import (
     fill_user_prompt,
     system_prompt,
+)
+from graph_handler import (
+    RAGState,
+    build_graph,
 )
 
 
 app = Flask(__name__)
 CORS(app, origins=[f"http://{HOOK_HOST}:{HOOK_PORT}"])
-
-
-class RAGState(TypedDict):
-    query: str
-    user_conversation: list[dict]
-    role: str
-    stream: bool
-
-    retrieved_chunks: list
-
-    conversation_for_generation: list[dict]
-    
-    answer: dict
-    answer_stream: object
 
 
 def get_last_message(user_conversation: list[dict]):
@@ -156,20 +143,12 @@ def generate_node(state: RAGState):
     }
 
 
-def build_graph():
-    graph_builder = StateGraph(RAGState)
-    graph_builder.add_node("retrieve", retrieve_node)
-    graph_builder.add_node("rank", rank_node)
-    graph_builder.add_node("build_prompt", build_prompt_node)
-    graph_builder.add_node("generate", generate_node)
-    graph_builder.add_edge(START, "retrieve")
-    graph_builder.add_edge("retrieve", "rank")
-    graph_builder.add_edge("rank", "build_prompt")
-    graph_builder.add_edge("build_prompt", "generate")
-    graph_builder.add_edge("generate", END)
-    return graph_builder.compile()
-
-rag_graph = build_graph()
+rag_graph = build_graph(
+    retrieve_node,
+    rank_node,
+    build_prompt_node,
+    generate_node,
+)
 
 
 @traceable(name="Main Chain")

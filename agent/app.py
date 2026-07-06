@@ -1,14 +1,13 @@
 from flask import Flask, jsonify, request, Response, stream_with_context
-from langchain_core.messages import (
-    HumanMessage,
-    AIMessage,
-    SystemMessage,
-)
 from langchain_openai import ChatOpenAI
 import json
 
 from constants import HOST, PORT, DEBUG
-
+from agent_handler import (
+    build_messages,
+    generate_and_trace,
+    stream_response,
+)
 
 app = Flask(__name__)
 
@@ -17,56 +16,6 @@ llm = ChatOpenAI(
     temperature=0,
     streaming=True,
 )
-
-
-def build_messages(raw_messages):
-    messages = []
-
-    for message in raw_messages:
-        role = message.get("role")
-        content = message.get("content", "")
-
-        if role == "system":
-            messages.append(
-                SystemMessage(content=content)
-            )
-
-        elif role == "user":
-            messages.append(
-                HumanMessage(content=content)
-            )
-
-        elif role == "assistant":
-            messages.append(
-                AIMessage(content=content)
-            )
-
-        else:
-            raise ValueError(
-                f"Unsupported role: {role}"
-            )
-
-    return messages
-
-
-def generate_and_trace(messages):
-    response = llm.invoke(messages)
-
-    return {
-        "content": response.content
-    }, 200
-
-
-def stream_response(messages):
-    for chunk in llm.stream(messages):
-        if chunk.content:
-            yield (
-                f"data: "
-                f"{json.dumps({'token': chunk.content})}"
-                f"\n\n"
-            )
-
-    yield "data: [DONE]\n\n"
 
 
 @app.route("/generate", methods=["POST"])
@@ -87,10 +36,10 @@ def generate():
         return jsonify({"error": str(exc)}), 400
     if stream:
         return Response(
-            stream_with_context(stream_response(messages)),
+            stream_with_context(stream_response(llm, messages)),
             mimetype="text/event-stream",
         )
-    result, status_code = (generate_and_trace(messages))
+    result, status_code = (generate_and_trace(llm, messages))
 
     return jsonify(result), status_code
 

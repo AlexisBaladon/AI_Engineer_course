@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from openai import OpenAI
 
-from handlers.reranking_handler import (
+from reranking_handler import (
     rerank_chunks,
 )
 
