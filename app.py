@@ -11,9 +11,7 @@ from constants import (
     ADMIN_USER_USERNAME,
     ADMIN_USER_PASSWORD,
     ENCRYPTION_SECRET_KEY,
-    FRONTEND_PREFIX,
-    FRONTEND_HOST,
-    FRONTEND_PORT,
+    FRONTEND_ORIGIN,
     USER_ROLE,
     ADMIN_ROLE,
     CHUNKED_DATA_PATH,
@@ -46,7 +44,10 @@ from agent.agent_handler import (
 )
 
 app = Flask(__name__)
-CORS(app, origins=[f"{FRONTEND_PREFIX}://{FRONTEND_HOST}:{FRONTEND_PORT}"], supports_credentials=True)
+
+print(f"Server expects to recieve API calls from: {FRONTEND_ORIGIN}")
+
+CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
 openai_client = OpenAI()
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25 = build_bm25_index(chunks)
