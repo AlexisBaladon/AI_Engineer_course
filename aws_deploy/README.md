@@ -8,6 +8,8 @@
 Asumimos primero que existe el nombre de dominio appnau.com en Route53, que el dominio apunta a una Elastic IP, y que la Elastic IP está asociada a la instancia EC2 donde se encuentra el proyecto.
 
 1. Copiar configuración presente en el archivo nginx.conf en el cortapapeles.
-2. vim /etc/nginx/sites-available/nauai
+2. sudo vim /etc/nginx/sites-available/nauai
 3. Shift + Ctrl + V
 4. :wq + Enter
+5. sudo vim /etc/nginx/nginx.conf, e incorporar dentro del header http: limit_req_zone $binary_remote_addr zone=general:10m rate=30r/m;
+6. If you want to change the configuration of the nginx.conf file, use: sudo systemctl reload nginx.

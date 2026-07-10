@@ -3,6 +3,8 @@ from flask_cors import CORS
 from langsmith import traceable
 from openai import OpenAI
 from langchain_openai import ChatOpenAI
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from constants import (
     HOST,
@@ -48,6 +50,12 @@ app = Flask(__name__)
 print(f"Server expects to recieve API calls from: {FRONTEND_ORIGIN}")
 
 CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+)
+
 openai_client = OpenAI()
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25 = build_bm25_index(chunks)

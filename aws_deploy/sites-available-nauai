@@ -1,8 +1,9 @@
 server {
 
     listen 80;
-
     server_name api.appnau.com;
+
+    limit_req zone=general burst=5 nodelay;
 
     location /chat {
 
