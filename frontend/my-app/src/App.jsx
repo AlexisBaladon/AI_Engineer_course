@@ -68,7 +68,7 @@ export default function App() {
     }
 
   async function handleLogout() {
-    await fetch(`http://${BACKEND_HOST}:${BACKEND_PORT}/logout`, {
+    await fetch(`${BACKEND_HOST}:${BACKEND_PORT}/logout`, {
         method: "POST",
         credentials: "include",
     });
