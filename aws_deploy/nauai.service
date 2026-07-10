@@ -5,8 +5,8 @@ After=network.target
 [Service]
 User=ubuntu
 WorkingDirectory=/home/ubuntu/AI_Engineer_course
-Environment="PATH=/home/ubuntu/AI_Engineer_course/.venv/bin"
-ExecStart=/home/ubuntu/AI_Engineer_course/nauai/bin/python app.py
+Environment="PATH=/home/ubuntu/AI_Engineer_course/nau_ai/bin"
+ExecStart=/home/ubuntu/AI_Engineer_course/nau_ai/bin/python app.py
 
 Restart=always
 RestartSec=5
