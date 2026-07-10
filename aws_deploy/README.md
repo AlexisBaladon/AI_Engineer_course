@@ -13,3 +13,11 @@ Asumimos primero que existe el nombre de dominio appnau.com en Route53, que el d
 4. :wq + Enter
 5. sudo vim /etc/nginx/nginx.conf, e incorporar dentro del header http: limit_req_zone $binary_remote_addr zone=general:10m rate=30r/m;
 6. If you want to change the configuration of the nginx.conf file, use: sudo systemctl reload nginx.
+
+## Para dejar servicio corriendo
+1. sudo vim /etc/systemd/system/nauai.service
+2. Pegar la configuración incluida en nauai.service.
+3. sudo systemctl daemon-reload
+4. sudo systemctl enable nauai
+5. sudo systemctl start nauai
+6. sudo systemctl status nauai
