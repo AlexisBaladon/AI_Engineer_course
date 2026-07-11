@@ -2,8 +2,6 @@ import requests
 
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
-from langsmith import traceable
-
 
 from constants import (
     HOST,
@@ -26,6 +24,8 @@ from graph_handler import (
     RAGState,
     build_graph,
 )
+from observability.langsmith_tracing import traceable
+import observability.arize_tracing
 
 
 app = Flask(__name__)
