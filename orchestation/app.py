@@ -24,8 +24,12 @@ from graph_handler import (
     RAGState,
     build_graph,
 )
-from observability.langsmith_tracing import traceable
-import observability.arize_tracing
+from observability.langsmith_tracing import (
+    traceable,
+    get_current_run_tree,
+    decode_stream
+)
+from observability.arize_tracing import tracer_provider as _
 
 
 app = Flask(__name__)
@@ -151,8 +155,19 @@ rag_graph = build_graph(
 )
 
 
+@traceable(run_type="llm", name="Final response", reduce_fn=decode_stream)
+def generate_chunks(answer_stream):
+    for chunk in answer_stream.iter_content(chunk_size=None):
+        if chunk:
+            chunk = chunk.decode()
+            yield chunk
+
+
 @traceable(name="Main Chain")
 def answer_query_and_trace(messages: list[str], role="user", stream: bool = False):
+    tracing_tree = get_current_run_tree()
+    tracing_headers = tracing_tree.to_headers()
+
     result = rag_graph.invoke({
         "user_conversation": messages,
         "stream": stream,
@@ -160,7 +175,11 @@ def answer_query_and_trace(messages: list[str], role="user", stream: bool = Fals
     })
 
     if stream:
-        return result["answer_stream"], None
+        chunk_generator = generate_chunks(
+            result["answer_stream"], 
+            langsmith_extra={"parent": tracing_headers}
+        )
+        return chunk_generator, None
     return result["answer"], 200
 
 
@@ -173,16 +192,11 @@ def run_chain():
     stream = body.get("stream", False)
 
     if stream:
-        raw_response, _ = answer_query_and_trace(messages, role, stream=True)
-
-        def generate_chunks():
-            for chunk in raw_response.iter_content(chunk_size=None):
-                if chunk:
-                    yield chunk
+        chunk_generator, _ = answer_query_and_trace(messages, role, stream=True)
 
         return Response(
-            stream_with_context(generate_chunks()),
-            content_type=raw_response.headers.get("Content-Type", "text/event-stream"),
+            stream_with_context(chunk_generator),
+            content_type="text/event-stream",
         )
 
     result, status_code = answer_query_and_trace(messages, role, stream=False)
