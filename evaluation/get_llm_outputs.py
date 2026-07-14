@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 MAIN_CHAIN_URL = "http://localhost:1232/run_chain"
 
 INPUT_CSV = "test_dataset.csv"
-OUTPUT_JSON = "llm_results.json"
+OUTPUT_JSON = "llm_outputs.json"
 
 
 def get_git_commit():
