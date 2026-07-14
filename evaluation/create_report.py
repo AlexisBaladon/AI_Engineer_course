@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime
 
 INPUT_FILE = "llm_metrics.json"
-OUTPUT_FILE = "README.md"
+OUTPUT_FILE = "report.md"
 
 
 def mean(values):
@@ -66,15 +66,20 @@ for run in runs:
             faithfulness["score"]
         )
 
-    if relevance.get("average_score") is not None:
-        relevance_scores.append(
-            relevance["average_score"]
+    precision = (
+        sum(
+            evaluation["label"] == "relevant"
+            for evaluation in run["evaluation"]["document_relevance"]["documents"]
         )
+        / len(run["evaluation"]["document_relevance"]["documents"])
+)
+    relevance_scores.append(precision)
 
 faithfulness_labels = Counter(
     run["evaluation"]["faithfulness"]["label"]
     for run in runs
 )
+
 
 # -------------------------------
 # Worst queries
@@ -127,7 +132,7 @@ markdown = f"""# 🧠 Nau64 RAG Evaluation Report
 |---------|------:|
 | Average Time to First Token | **{fmt(mean(ttft))} s** |
 | Average Faithfulness | **{fmt(mean(faithfulness_scores),3)}** |
-| Average Retrieval Relevance | **{fmt(mean(relevance_scores),3)}** |
+| Precision@k | **{fmt(mean(relevance_scores),3)}** |
 
 ---
 
@@ -167,7 +172,7 @@ latest version of the Nau64 RAG system.
 
 - Average Time to First Token: **{fmt(mean(ttft))} seconds**
 - Average Faithfulness: **{fmt(mean(faithfulness_scores),3)}**
-- Average Retrieval Relevance: **{fmt(mean(relevance_scores),3)}**
+- Average Precision@k: **{fmt(mean(relevance_scores),3)}**
 
 The benchmark was generated automatically from commit `{commit}` on
 {experiment_date}.
