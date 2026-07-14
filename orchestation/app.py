@@ -1,4 +1,5 @@
 import requests
+import json
 
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
@@ -156,11 +157,14 @@ rag_graph = build_graph(
 
 
 @traceable(run_type="llm", name="Final response", reduce_fn=decode_stream)
-def generate_chunks(answer_stream):
+def generate_chunks(answer_stream, additional_information: dict):
     for chunk in answer_stream.iter_content(chunk_size=None):
         if chunk:
             chunk = chunk.decode()
             yield chunk
+
+    additional_information_dumped = json.dumps(additional_information)
+    yield additional_information_dumped
 
 
 @traceable(name="Main Chain")
@@ -174,13 +178,30 @@ def answer_query_and_trace(messages: list[str], role="user", stream: bool = Fals
         "role": role,
     })
 
+    additional_information = {
+        "system_prompt": system_prompt,
+        "query": result["query"],
+        "role": result["role"],
+        "retrieval_information": [
+            {
+                "chunk_text": chunk["chunk_text"],
+                "lexical_score": chunk["lexical_score"],
+                "semantic_score": chunk["semantic_score"],
+            } 
+            for chunk in result["retrieved_chunks"]
+        ],
+    }
+
     if stream:
         chunk_generator = generate_chunks(
-            result["answer_stream"], 
+            result["answer_stream"],
+            additional_information=additional_information,
             langsmith_extra={"parent": tracing_headers}
         )
         return chunk_generator, None
-    return result["answer"], 200
+
+    additional_information["answer"] = result["answer"]
+    return additional_information, 200
 
 
 @app.route("/run_chain", methods=["POST"])
