@@ -1,3 +1,6 @@
+from orchestation.mcp_adapters.image_mcp import handle_images_mcp
+
+
 EXPERTISE_AREA = "the chess club Nau64"
 
 system_prompt = """
@@ -54,17 +57,8 @@ def fill_user_prompt(
             f"Content:\n{doc}"
         )
 
-        if role == "admin" and image_urls:
-            image_block = "\n".join(
-                f"- {image_url}"
-                for image_url in image_urls
-            )
-
-            block += (
-                "\n\n"
-                "Images:\n"
-                f"{image_block}"
-            )
+        image_block = handle_images_mcp(role, image_urls)
+        block += image_block
 
         document_blocks.append(block)
 
