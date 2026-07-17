@@ -119,7 +119,8 @@ For the backend:
 ```
 pip install -r requirements.txt
 ```
-Nota: Este método inicializa una aplicación de Python monolítica, importando los métodos de la aplicación en vez de hacer llamadas de API. Esto es utilizado para despliegues menos costosos, como en AWS. También es posible correr cada microservicio de manera independiente, pero esto requiere más recursos y es más costoso:
+
+Note: This method inicializes a monolithic Python application, importing the methods of the application instead of making API calls. This is used for less expensive deployments, such as on AWS. It is also possible to run each microservice independently, but this requires more resources and is more costly.
 
 ```
 cd <MICROSERVICE_FOLDER>
@@ -140,7 +141,7 @@ Para correr el backend en un solo servidor:
 python app.py
 ```
 
-Para correr cada microservicio de manera independiente:
+To run every microservice independently:
 ```
 cd <MICROSERVICE_FOLDER>
 python app.py
