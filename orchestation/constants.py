@@ -17,6 +17,12 @@ RETRIEVAL_PORT = os.getenv("RETRIEVAL_PORT", 1230)
 RANKING_HOST = os.getenv("RANKING_HOST", "localhost")
 RANKING_PORT = os.getenv("RANKING_PORT", 1233)
 
+# Ideally would be coming from the same service
+JUDGE_HOST = os.getenv("JUDGE_HOST", "localhost")
+JUDGE_PORT = os.getenv("JUDGE_PORT", 1236)
+REWRITE_HOST = os.getenv("REWRITE_HOST", "localhost")
+REWRITE_PORT = os.getenv("REWRITE_PORT", 1236)
+
 GENERATION_HOST = os.getenv("GENERATION_HOST", "localhost")
 GENERATION_PORT = os.getenv("GENERATION_PORT", 1231)
 

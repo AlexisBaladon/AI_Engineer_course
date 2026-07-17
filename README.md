@@ -1,6 +1,7 @@
 # AI_Engineer_course
 Source code of my Coderhouse AI Engineer course submissions
 
+## Deployment using K8
 
 ### Verify kubernetes cluster is created
 Kubernetes must be installed in order to run the application.
@@ -34,4 +35,6 @@ kubectl logs agent-f447658f5-w8jf2 -n nau-ai
 kubectl config current-context
 
 
-
+## Deployment using Docker compose
+### Build the docker images
+docker compose --build up

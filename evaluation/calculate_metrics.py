@@ -9,17 +9,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-llm = LLM(
-    provider="openai",
-    model="gpt-4.1-mini",
-)
-
+llm = LLM(provider="openai", model="gpt-4.1-mini")
 faithfulness_evaluator = FaithfulnessEvaluator(llm=llm)
 document_relevance_evaluator = DocumentRelevanceEvaluator(llm=llm)
 
 INPUT_FILE = "llm_outputs.json"
 OUTPUT_FILE = "llm_metrics.json"
+
+
 def build_context(retrieved_documents):
     return "\n\n".join(
         document["chunk_text"]

@@ -23,6 +23,10 @@ from authentication.authentication_handler import (
     create_token,
     get_current_user,
 )
+from orchestation.observability.langsmith_tracing import (
+    decode_stream, 
+    get_current_run_tree
+)
 from orchestation.prompts_handler import (
     fill_user_prompt,
     system_prompt,
@@ -39,11 +43,17 @@ from retrieval.retrieval_handler import (
 from ranking.reranking_handler import (
     rerank_chunks,
 )
+from judge.reasoning_handler import (
+    judge_context,
+    rewrite_query,
+)
 from agent.agent_handler import (
     build_messages,
     generate_and_trace,
     stream_response,
 )
+
+import json
 
 app = Flask(__name__)
 
@@ -124,7 +134,7 @@ def auth_status():
     }), 200
 
 
-def get_last_message(user_conversation: list[dict]):
+def _get_last_message(user_conversation: list[dict]):
     return next(
         (
             message["content"]
@@ -137,10 +147,14 @@ def get_last_message(user_conversation: list[dict]):
 
 def retrieve_node(state: RAGState):
     top_k = 5
-    last_user_message = get_last_message(state["user_conversation"])
+
+    query = state.get("query")
+
+    if query is None:
+        query = _get_last_message(state["user_conversation"])
 
     retrieved_chunks = search(
-        query=last_user_message,
+        query=query,
         bm25=bm25,
         openai_client=openai_client,
         chunks=chunks,
@@ -148,7 +162,7 @@ def retrieve_node(state: RAGState):
     )
 
     return {
-        "query": last_user_message,
+        "query": query,
         "retrieved_chunks": retrieved_chunks,
     }
 
@@ -194,6 +208,44 @@ def build_prompt_node(state: RAGState):
     return {"conversation_for_generation": conversation_for_generation}
 
 
+
+
+def judge_context_node(state: RAGState):
+    if state["iteration"] >= state["max_iterations"]:
+        return {
+            "enough_context": True,
+        }
+
+    result = judge_context(
+        state["query"],
+        state["retrieved_chunks"],
+        openai_client,
+    )
+
+    return {
+        "enough_context": result["enough_context"],
+    }
+
+
+def rewrite_query_node(state: RAGState):
+    result = rewrite_query(
+        state["query"], 
+        state["retrieved_chunks"], 
+        openai_client
+    )
+
+    rewritten_query = result["query"]
+
+    return {
+        "query": rewritten_query,
+        "iteration": state["iteration"] + 1,
+        "query_history": (
+            state["query_history"]
+            + [rewritten_query]
+        ),
+    }
+
+
 def generate_node(state: RAGState):
     raw_messages = state["conversation_for_generation"]
     stream = state.get("stream", False)
@@ -208,9 +260,11 @@ def generate_node(state: RAGState):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if stream:
+        answer_stream = stream_response(llm, messages)
+
         return {
             "answer": None,
-            "answer_stream": stream_response(llm, messages)
+            "answer_stream": answer_stream
         }
     result, _ = (generate_and_trace(llm, messages))
 
@@ -223,22 +277,63 @@ def generate_node(state: RAGState):
 rag_graph = build_graph(
     retrieve_node,
     rank_node,
+    judge_context_node,
+    rewrite_query_node,
     build_prompt_node,
     generate_node,
 )
 
 
+@traceable(
+    run_type="llm",
+    name="Final response",
+    reduce_fn=decode_stream,
+)
+def generate_chunks(answer_stream, additional_information: dict):
+    for chunk in answer_stream:
+        yield chunk
+
+    yield json.dumps(additional_information)
+
+
 @traceable(name="Main Chain")
 def answer_query_and_trace(messages: list[str], role="user", stream: bool = False):
+    tracing_tree = get_current_run_tree()
+    tracing_headers = tracing_tree.to_headers()
+
     result = rag_graph.invoke({
         "user_conversation": messages,
         "stream": stream,
         "role": role,
+        "iteration": 0,
+        "max_iterations": 0,
+        "query_history": [],
     })
 
     if stream:
-        return result["answer_stream"], None
-    return result["answer"], 200
+        additional_information = {
+            "system_prompt": system_prompt,
+            "query": result["query"],
+            "query_history": result.get("query_history", [result["query"]]),
+            "iterations": result.get("iteration", 0),
+            "role": result["role"],
+            "retrieval_information": [
+                {
+                    "chunk_text": chunk["chunk_text"],
+                    "lexical_score": chunk["lexical_score"],
+                    "semantic_score": chunk["semantic_score"],
+                }
+                for chunk in result["retrieved_chunks"]
+            ],
+        }
+        result["answer_stream"] = generate_chunks(
+            result["answer_stream"], 
+            additional_information,
+            langsmith_extra={
+                "parent": tracing_headers,
+        },)
+        return result, 200
+    return result, 200
 
 
 @app.route("/chat", methods=["POST"])
@@ -250,11 +345,11 @@ def run_chain():
     user = get_current_user(request.cookies, encryption_secret_key=ENCRYPTION_SECRET_KEY)
     role = ADMIN_ROLE if user is not None else USER_ROLE
 
-    if stream:
-        response_iterator, _ = answer_query_and_trace(messages, role, stream=True)
+    result, status_code = answer_query_and_trace(messages, role, stream=stream)
 
+    if stream:
         return Response(
-            stream_with_context(response_iterator),
+            stream_with_context(result["answer_stream"]),
             mimetype="text/event-stream",
         )
 

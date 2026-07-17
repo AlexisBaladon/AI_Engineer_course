@@ -51,8 +51,13 @@ services:
       RETRIEVAL_HOST: retrieval
       RETRIEVAL_PORT: 1230
 
-      RANKING_HOST: reranker
+      RANKING_HOST: ranking
       RANKING_PORT: 1233
+
+      JUDGE_HOST: judge
+      JUDGE_PORT: 1236
+      REWRITE_HOST: judge
+      REWRITE_PORT: 1236
 
       GENERATION_HOST: agent
       AGENT_PORT: 1231
@@ -62,6 +67,7 @@ services:
     depends_on:
       - retrieval
       - ranking
+      - judge
       - agent
       - authentication
     restart: unless-stopped
@@ -90,6 +96,19 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 1233
+    restart: unless-stopped
+
+  judge:
+    build:
+      context: ./judge
+    container_name: nau_judge
+    ports:
+      - "1236:1236"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1236
     restart: unless-stopped
 
   agent:

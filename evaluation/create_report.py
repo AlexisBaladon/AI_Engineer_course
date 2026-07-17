@@ -20,169 +20,162 @@ def fmt(value, digits=2):
     return f"{value:.{digits}f}"
 
 
-with open(INPUT_FILE, encoding="utf-8") as f:
-    runs = json.load(f)
+if __name__ == "__main__":
+    with open(INPUT_FILE, encoding="utf-8") as f:
+        runs = json.load(f)
 
-# -------------------------------
-# Metadata
-# -------------------------------
+    # -------------------------------
+    # Metadata
+    # -------------------------------
 
-metadata = runs[0]
+    metadata = runs[0]
 
-experiment_date = metadata.get("experiment_date", "-")
-commit = metadata.get("last_commit", "-")
-retrieval_method = metadata.get("retrieval_method", "Hybrid Search")
-llm = metadata.get("llm_model", "gpt-4.1-mini")
-reranking_model = metadata.get("reranking_model", "gpt-4.1-mini")
-embedding = metadata.get("embedding_model", "text-embedding-3-small")
+    experiment_date = metadata.get("experiment_date", "-")
+    commit = metadata.get("last_commit", "-")
+    retrieval_method = metadata.get("retrieval_method", "Hybrid Search")
+    llm = metadata.get("llm_model", "gpt-4.1-mini")
+    reranking_model = metadata.get("reranking_model", "gpt-4.1-mini")
+    embedding = metadata.get("embedding_model", "text-embedding-3-small")
 
-# -------------------------------
-# Metrics
-# -------------------------------
+    # -------------------------------
+    # Metrics
+    # -------------------------------
 
-ttft = [
-    run["time_to_first_token"]
-    for run in runs
-]
+    ttft = [
+        run["time_to_first_token"]
+        for run in runs
+    ]
 
 
-faithfulness_scores = []
+    faithfulness_scores = []
 
-relevance_scores = []
+    relevance_scores = []
 
-for run in runs:
+    for run in runs:
+        evaluation = run.get("evaluation", {})
+        faithfulness = evaluation.get("faithfulness", {})
+        relevance = evaluation.get("document_relevance", {})
 
-    evaluation = run.get("evaluation", {})
+        if faithfulness.get("score") is not None:
+            faithfulness_scores.append(faithfulness["score"])
 
-    faithfulness = evaluation.get("faithfulness", {})
+        precision = (
+            sum(
+                evaluation["label"] == "relevant"
+                for evaluation in run["evaluation"]["document_relevance"]["documents"]
+            )
+            / len(run["evaluation"]["document_relevance"]["documents"])
+    )
+        relevance_scores.append(precision)
 
-    relevance = evaluation.get(
-        "document_relevance",
-        {}
+    faithfulness_labels = Counter(
+        run["evaluation"]["faithfulness"]["label"]
+        for run in runs
     )
 
-    if faithfulness.get("score") is not None:
-        faithfulness_scores.append(
-            faithfulness["score"]
-        )
 
-    precision = (
-        sum(
-            evaluation["label"] == "relevant"
-            for evaluation in run["evaluation"]["document_relevance"]["documents"]
-        )
-        / len(run["evaluation"]["document_relevance"]["documents"])
-)
-    relevance_scores.append(precision)
+    # -------------------------------
+    # Worst queries
+    # -------------------------------
 
-faithfulness_labels = Counter(
-    run["evaluation"]["faithfulness"]["label"]
-    for run in runs
-)
+    worst_queries = sorted(
+        runs,
+        key=lambda x:
+        x["evaluation"]["faithfulness"]["score"]
+    )[:10]
 
+    # -------------------------------
+    # Best queries
+    # -------------------------------
 
-# -------------------------------
-# Worst queries
-# -------------------------------
+    best_queries = sorted(
+        runs,
+        key=lambda x:
+        x["evaluation"]["faithfulness"]["score"],
+        reverse=True
+    )[:10]
 
-worst_queries = sorted(
-    runs,
-    key=lambda x:
-    x["evaluation"]["faithfulness"]["score"]
-)[:10]
+    # -------------------------------
+    # Markdown
+    # -------------------------------
 
-# -------------------------------
-# Best queries
-# -------------------------------
+    markdown = f"""# 🧠 Nau64 RAG Evaluation Report
 
-best_queries = sorted(
-    runs,
-    key=lambda x:
-    x["evaluation"]["faithfulness"]["score"],
-    reverse=True
-)[:10]
+    > Automatically generated benchmark report.
 
-# -------------------------------
-# Markdown
-# -------------------------------
+    ---
 
-markdown = f"""# 🧠 Nau64 RAG Evaluation Report
+    # 📋 Experiment Information
 
-> Automatically generated benchmark report.
+    | Property | Value |
+    |-----------|------:|
+    | Date | {experiment_date} |
+    | Git Commit | `{commit}` |
+    | Embedding Model | {embedding} |
+    | Retrieval Method | {retrieval_method} |
+    | Re-ranking Model | {reranking_model} |
+    | LLM | {llm} |
+    | Number of Questions | {len(runs)} |
 
----
+    ---
 
-# 📋 Experiment Information
+    # 📊 Overall Metrics
 
-| Property | Value |
-|-----------|------:|
-| Date | {experiment_date} |
-| Git Commit | `{commit}` |
-| Embedding Model | {embedding} |
-| Retrieval Method | {retrieval_method} |
-| Re-ranking Model | {reranking_model} |
-| LLM | {llm} |
-| Number of Questions | {len(runs)} |
+    | Metric | Value |
+    |---------|------:|
+    | Average Time to First Token | **{fmt(mean(ttft))} s** |
+    | Average Faithfulness | **{fmt(mean(faithfulness_scores),3)}** |
+    | Precision@k | **{fmt(mean(relevance_scores),3)}** |
 
----
+    ---
 
-# 📊 Overall Metrics
+    # ✅ Faithfulness Distribution
 
-| Metric | Value |
-|---------|------:|
-| Average Time to First Token | **{fmt(mean(ttft))} s** |
-| Average Faithfulness | **{fmt(mean(faithfulness_scores),3)}** |
-| Precision@k | **{fmt(mean(relevance_scores),3)}** |
+    | Label | Count |
+    |--------|------:|
+    """
 
----
+    for label, count in faithfulness_labels.items():
+        markdown += f"| {label} | {count} |\n"
 
-# ✅ Faithfulness Distribution
+    markdown += """
 
-| Label | Count |
-|--------|------:|
-"""
+    ---
 
-for label, count in faithfulness_labels.items():
-    markdown += f"| {label} | {count} |\n"
+    # ⚡ Latency
 
-markdown += """
+    | Metric | Seconds |
+    |---------|--------:|
+    """
 
----
-
-# ⚡ Latency
-
-| Metric | Seconds |
-|---------|--------:|
-"""
-
-markdown += f"| Fastest TTFT | {fmt(min(ttft))} |\n"
-markdown += f"| Slowest TTFT | {fmt(max(ttft))} |\n"
+    markdown += f"| Fastest TTFT | {fmt(min(ttft))} |\n"
+    markdown += f"| Slowest TTFT | {fmt(max(ttft))} |\n"
 
 
-markdown += f"""
+    markdown += f"""
 
----
+    ---
 
-# 📈 Executive Summary
+    # 📈 Executive Summary
 
-This benchmark evaluated **{len(runs)}** user questions against the
-latest version of the Nau64 RAG system.
+    This benchmark evaluated **{len(runs)}** user questions against the
+    latest version of the Nau64 RAG system.
 
-## Highlights
+    ## Highlights
 
-- Average Time to First Token: **{fmt(mean(ttft))} seconds**
-- Average Faithfulness: **{fmt(mean(faithfulness_scores),3)}**
-- Average Precision@k: **{fmt(mean(relevance_scores),3)}**
+    - Average Time to First Token: **{fmt(mean(ttft))} seconds**
+    - Average Faithfulness: **{fmt(mean(faithfulness_scores),3)}**
+    - Average Precision@k: **{fmt(mean(relevance_scores),3)}**
 
-The benchmark was generated automatically from commit `{commit}` on
-{experiment_date}.
-"""
+    The benchmark was generated automatically from commit `{commit}` on
+    {experiment_date}.
+    """
 
-with open(
-    OUTPUT_FILE,
-    "w",
-    encoding="utf-8",
-) as f:
-    f.write(markdown)
+    with open(
+        OUTPUT_FILE,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        f.write(markdown)
 
-print(f"Report written to {OUTPUT_FILE}")
+    print(f"Report written to {OUTPUT_FILE}")

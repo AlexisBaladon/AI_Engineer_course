@@ -37,6 +37,12 @@ data:
   RANKING_HOST: "ranking"
   RANKING_PORT: "1233"
 
+  # Judge
+  JUDGE_HOST: "judge"
+  JUDGE_PORT: "1236"
+  REWRITE_HOST: "judge"
+  REWRITE_PORT: "1236"
+
   # Agent
   GENERATION_HOST: "agent"
   GENERATION_PORT: "1231"
