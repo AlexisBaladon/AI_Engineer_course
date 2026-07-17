@@ -191,3 +191,45 @@ sudo systemctl restart nauai
 
 ## 🌐 Option 5: Access to an already deployed application
 You can access the deployed application at the following URL: [https://nauai.netlify.app/](https://nauai.netlify.app/)
+
+
+## Project requirements
+
+### Folders for every component:
+- **retrieval/**: Contains the retrieval component.
+- **ranking/**: Contains the ranking component.
+- **orchestation/**: Contains the orchestration component.
+- **agent/**: Contains the agent component.
+- **orchestation/mcp_adapters/**: Contains the MCP adapters component.
+- **orchestation/observability/**: Contains the observability component.
+
+### Documentation
+- See the `README.md` file to check the architecture and how to run each module.
+
+### Components
+- Retrieval:
+    - ✅ Retrieval module in `retrieval/`.
+    - ❌ Vectorial database.
+- Ranking:
+    - ✅ Ranking module in `ranking/`.
+- Orchestration:
+
+    - ✅ Orchestration module in `orchestation/`.
+    - ✅ Coordination of LLMs: For example, the re-ranker and the agent are orchestrated to work together. 
+    - ❌ Use of tools.
+- Agent:
+    - ✅ Agent module in `agent/`.
+    - ✅ Cyclic agent using LangGraph: I use a cyclic agent to decide if the retrieved documents are enough to answer the question or if it needs to retrieve more documents.
+- MCP Adapters:
+    - ✅ MCP adapters in `orchestation/mcp_adapters/`. I use adapters to prevent non-admin users from accessing images.
+- Deployment:
+    - ✅ Deployment scripts for Kubernetes created in `deployment/`.
+    - ✅ Scaling: The application can be scaled by changing the number of replicas in the deployment.yaml file.
+- Observability:
+    - ✅ Observability module in `orchestation/observability/`.
+    - ✅ LangSmith integration: I use LangSmith to collect logs, metrics and traces.
+    - ✅ Arize AX integration: I use Arize to collect logs, metrics and traces.
+    - ✅ Metrics defined: Latency, hallucination rate, Document precision@k.
+- Architetural decisions:
+    - ❌ I haven't documented the architectural decisions and the metrics defined.
+    - ✅ Deployment and monitoring process: Described in the README.md file. 
