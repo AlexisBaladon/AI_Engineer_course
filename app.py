@@ -38,6 +38,7 @@ from orchestation.graph_handler import (
 from retrieval.retrieval_handler import (
     load_chunks,
     build_bm25_index,
+    build_faiss_index,
     search,
 )
 from ranking.reranking_handler import (
@@ -69,6 +70,7 @@ limiter = Limiter(
 openai_client = OpenAI()
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25 = build_bm25_index(chunks)
+faiss_index = build_faiss_index(chunks)
 llm = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0,
@@ -156,6 +158,7 @@ def retrieve_node(state: RAGState):
     retrieved_chunks = search(
         query=query,
         bm25=bm25,
+        faiss_index=faiss_index,
         openai_client=openai_client,
         chunks=chunks,
         top_k=top_k,

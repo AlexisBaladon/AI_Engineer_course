@@ -19,3 +19,4 @@ jsonschema<4
 python-dotenv<1
 arize-phoenix==18.0.0
 arize-phoenix-evals==3.1.1
+faiss-cpu==1.14.3

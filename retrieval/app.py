@@ -4,6 +4,7 @@ from openai import OpenAI
 from retrieval_handler import (
     load_chunks,
     build_bm25_index,
+    build_faiss_index,
     search,
 )
 from constants import (
@@ -17,7 +18,8 @@ from constants import (
 
 app = Flask(__name__)
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
-bm25 = build_bm25_index(chunks)
+bm25_index = build_bm25_index(chunks)
+faiss_index = build_faiss_index(chunks)
 openai_client = OpenAI()
 
 
@@ -34,7 +36,8 @@ def retrieve():
     
     results = search(
         query=query,
-        bm25=bm25,
+        bm25=bm25_index,
+        faiss_index=faiss_index,
         openai_client=openai_client,
         chunks=chunks,
         top_k=top_k,

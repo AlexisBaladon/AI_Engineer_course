@@ -5,6 +5,7 @@ from collections import defaultdict
 from rank_bm25 import BM25Okapi
 from openai import OpenAI
 import numpy as np
+import faiss
 
 
 def tokenize(sentence: str):
@@ -53,6 +54,23 @@ def build_bm25_index(chunks):
     return bm25
 
 
+def build_faiss_index(chunks):
+    embeddings = np.array(
+        [chunk["chunk_embedding"] for chunk in chunks],
+        dtype=np.float32,
+    )
+
+    # Normalize so inner product == cosine similarity
+    faiss.normalize_L2(embeddings)
+
+    dimension = embeddings.shape[1]
+
+    index = faiss.IndexFlatIP(dimension)
+    index.add(embeddings)
+
+    return index
+
+
 def cosine_similarity(a, b):
     a = np.array(a)
     b = np.array(b)
@@ -65,6 +83,7 @@ def cosine_similarity(a, b):
 def search(
     query: str,
     bm25: BM25Okapi,
+    faiss_index: faiss.IndexFlatIP,
     openai_client: OpenAI,
     chunks: list[dict],
     top_k: int = 10,
@@ -95,22 +114,32 @@ def search(
         .embedding
     )
 
-    # TODO: Use sklearn for faster calcuation
-    semantic_scores = [
-        cosine_similarity(
-            query_embedding,
-            chunk["chunk_embedding"],
-        )
-        for chunk in chunks
-    ]
-
-    semantic_ranked = sorted(
-        zip(chunks, semantic_scores),
-        key=lambda x: x[1],
-        reverse=True,
+    query_embedding = np.array(
+        [query_embedding],
+        dtype=np.float32,
     )
 
-    semantic_candidates = semantic_ranked[:top_k]
+    faiss.normalize_L2(query_embedding)
+
+    scores, indices = faiss_index.search(
+        query_embedding,
+        top_k,
+    )
+
+    semantic_candidates = []
+
+    for score, index in zip(scores[0], indices[0]):
+        if index == -1:
+            continue
+
+        semantic_candidates.append(
+            (
+                chunks[index],
+                float(score),
+            )
+        )
+
+    semantic_candidates = semantic_candidates[:top_k]
 
     # Merge + deduplicate
     candidate_dict = {}
