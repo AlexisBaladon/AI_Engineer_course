@@ -1,11 +1,13 @@
 import json
 
+import requests
 from flask import (
     Flask,
     jsonify,
     request,
     Response,
     stream_with_context,
+    abort,
 )
 from flask_cors import CORS
 
@@ -15,6 +17,8 @@ from constants import (
     DEBUG,
     HOOK_HOST,
     HOOK_PORT,
+    GENERATION_HOST,
+    GENERATION_PORT,
 )
 from prompts_handler import (
     system_prompt,
@@ -34,6 +38,7 @@ from orchestration_controller import (
     rewrite_query_node,
     build_prompt_node,
     generate_node,
+    get_agent_tool_image,
 )
 from observability.arize_tracing import tracer_provider as _
 
@@ -145,6 +150,29 @@ def run_chain():
     )
 
     return jsonify(result), status_code
+
+
+@app.route("/image/<path:filename>", methods=["GET"])
+def get_image(filename):
+    """
+    Retrieves an image from the agent service and returns it to the client.
+    """
+
+    try:
+        response = get_agent_tool_image(filename)
+    except requests.RequestException:
+        abort(502)
+
+    if response.status_code != 200:
+        abort(response.status_code)
+
+    return Response(
+        response.iter_content(chunk_size=8192),
+        content_type=response.headers.get(
+            "Content-Type",
+            "image/svg+xml",
+        ),
+    )
 
 
 @app.route("/health")

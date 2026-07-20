@@ -1,6 +1,6 @@
 import requests
 
-from flask import Flask, request, Response, stream_with_context
+from flask import Flask, request, Response, stream_with_context, abort
 from flask_cors import CORS
 
 
@@ -126,6 +126,33 @@ def chat():
         response.content,
         status=response.status_code,
         content_type=response.headers.get("Content-Type"),
+    )
+
+
+@app.route("/image/<path:filename>", methods=["GET"])
+def get_image(filename):
+    """
+    Retrieves an image from the agent service and returns it to the client.
+    """
+
+    try:
+        response = requests.get(
+            f"http://{ORCHESTRATION_HOST}:{ORCHESTRATION_PORT}/image/{filename}",
+            stream=True,
+            timeout=30,
+        )
+    except requests.RequestException:
+        abort(502)
+
+    if response.status_code != 200:
+        abort(response.status_code)
+
+    return Response(
+        response.iter_content(chunk_size=8192),
+        content_type=response.headers.get(
+            "Content-Type",
+            "image/svg+xml",
+        ),
     )
 
 

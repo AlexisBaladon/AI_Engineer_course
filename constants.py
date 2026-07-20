@@ -26,3 +26,13 @@ ADMIN_ROLE = os.getenv("ADMIN_ROLE", "admin")
 
 CHUNKED_DATA_PATH = "./ingestion/embedded_chunked_data.csv"
 IMAGES_PATH = "./ingestion/website_images.csv"
+
+TOOLS_IMAGES_DIR = os.getenv("TOOLS_IMAGE_DIR", "generated_boards")
+
+# This assumes frontend and backend are served using the same method (http vs https)
+BACKEND_PREFIX = FRONTEND_PREFIX
+BACKEND_HOST = os.getenv("VITE_BACKEND_HOST", "localhost")
+BACKEND_PORT = os.getenv("VITE_BACKEND_PORT", 1235)
+BACKEND_ORIGIN = f"{BACKEND_PREFIX}://{BACKEND_HOST}"
+if not (BACKEND_PREFIX == "https" and BACKEND_PORT == 443):
+    BACKEND_ORIGIN += f":{BACKEND_PORT}"

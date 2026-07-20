@@ -20,3 +20,4 @@ AUTHENTICATION_PORT = os.getenv("AUTHENTICATION_PORT", 1234)
 
 USER_ROLE = os.getenv("USER_ROLE", "user")
 ADMIN_ROLE = os.getenv("ADMIN_ROLE", "admin")
+

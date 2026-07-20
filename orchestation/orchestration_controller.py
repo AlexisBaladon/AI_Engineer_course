@@ -186,3 +186,13 @@ def generate_node(state: RAGState):
         "answer": response.json(),
         "answer_stream": None,
     }
+
+
+def get_agent_tool_image(filename: str):
+    response = requests.get(
+        f"http://{GENERATION_HOST}:{GENERATION_PORT}/image/{filename}",
+        stream=True,
+        timeout=30,
+    )
+
+    return response

@@ -1,4 +1,4 @@
-from orchestation.mcp_adapters.image_mcp import handle_images_mcp
+from mcp_adapters.image_mcp import handle_images_mcp
 
 
 EXPERTISE_AREA = "the chess club Nau64"
