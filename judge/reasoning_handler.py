@@ -3,6 +3,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_openai import ChatOpenAI
+from langsmith import traceable
 
 import json
 
@@ -13,7 +14,7 @@ def _build_context(chunks: list[dict]) -> str:
         for i, chunk in enumerate(chunks)
     )
 
-
+@traceable(type="llm", name="Judge context")
 def judge_context(
     query: str,
     chunks: list[dict],
@@ -44,6 +45,7 @@ def judge_context(
     return json.loads(response.content)
 
 
+@traceable(type="llm", name="Rewrite query")
 def rewrite_query(
     query: str,
     chunks: list[dict],

@@ -5,7 +5,6 @@ from reranking_handler import (
     rerank_chunks,
 )
 
-
 from constants import (
     HOST,
     PORT,
@@ -20,7 +19,7 @@ llm = ChatOpenAI(
 )
 
 
-def rank_and_trace(query: str, chunks: list[dict], top_k=3):
+def rank_and_trace(query: str, chunks: list[dict], top_k=3, **kwargs):
     if query is None:
         return {
             "error": "query is a required attribute in the request"
@@ -35,6 +34,7 @@ def rank_and_trace(query: str, chunks: list[dict], top_k=3):
         query,
         chunks,
         llm,
+        **kwargs,
     )
 
     top_results = reranked_results[:top_k]
@@ -50,7 +50,13 @@ def rank():
     chunks = data.get("chunks", None)
     top_k = data.get("top_k", 3)
     top_k = int(top_k)
-    result, status_code = rank_and_trace(query, chunks, top_k)
+    tracing_headers = data.get("tracing_headers")
+    result, status_code = rank_and_trace(
+        query, 
+        chunks, 
+        top_k, 
+        langsmith_extra={"parent": tracing_headers}
+    )
     
     return jsonify(result), status_code
 

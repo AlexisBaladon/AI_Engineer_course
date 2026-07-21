@@ -19,3 +19,9 @@ def decode_stream(tokens: list[str]):
     parsed_additional_information = json.loads(additional_information)
 
     return {"response": final_response, "additional_information": parsed_additional_information}
+
+
+def get_tracing_headers():
+    tracing_tree = get_current_run_tree()
+    tracing_headers = tracing_tree.to_headers()
+    return tracing_headers

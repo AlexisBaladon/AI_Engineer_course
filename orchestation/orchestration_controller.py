@@ -4,7 +4,8 @@ from prompts_handler import (
     fill_user_prompt,
     system_prompt,
 )
-from orchestation.mcp_adapters.image_mcp import handle_images_mcp
+from mcp_adapters.image_mcp import handle_images_mcp
+from observability.langsmith_tracing import get_tracing_headers
 from constants import (
     RETRIEVAL_HOST,
     RETRIEVAL_PORT,
@@ -36,14 +37,21 @@ def _get_last_message(user_conversation: list[dict]):
 
 
 def retrieve_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
     query = state.get("query")
 
     if query is None:
         query = _get_last_message(state["user_conversation"])
 
-    retrieval_response = requests.get(
+    payload = {
+        "query": query,
+        "top_k": 5,
+        "tracing_headers": tracing_headers,
+    }
+
+    retrieval_response = requests.post(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
-        params={"query": query, "top_k": 5},
+        json=payload,
         timeout=30,
     )
 
@@ -58,10 +66,13 @@ def retrieve_node(state: RAGState):
 
 
 def rank_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
+
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
         "top_k": 3,
+        "tracing_headers": tracing_headers,
     }
 
     ranked_response = requests.post(
@@ -80,10 +91,12 @@ def rank_node(state: RAGState):
 
 
 def judge_context_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
 
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
+        "tracing_headers": tracing_headers,
     }
 
     response = requests.post(
@@ -102,10 +115,12 @@ def judge_context_node(state: RAGState):
 
 
 def rewrite_query_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
 
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
+        "tracing_headers": tracing_headers,
     }
 
     response = requests.post(
@@ -133,25 +148,30 @@ def rewrite_query_node(state: RAGState):
 def build_prompt_node(state: RAGState):
     role = state["role"]
     chunks = state["retrieved_chunks"]
-    documents =  [chunk["chunk_text"] for chunk in chunks]
+    documents = [chunk["chunk_text"] for chunk in chunks]
     images = [chunk["images"] for chunk in chunks]
     urls = [chunk["url"] for chunk in chunks]
+
     rag_prompt = fill_user_prompt(
-        state["query"], 
-        documents, 
-        urls, 
-        images, 
-        role, 
+        state["query"],
+        documents,
+        urls,
+        images,
+        role,
         handle_images_mcp,
     )
-    
+
     conversation_for_generation = [
         {
             "role": "system",
             "content": system_prompt,
         }
     ]
-    conversation_for_generation.extend(state["user_conversation"][:-1])
+
+    conversation_for_generation.extend(
+        state["user_conversation"][:-1]
+    )
+
     conversation_for_generation.append(
         {
             "role": "user",
@@ -159,13 +179,18 @@ def build_prompt_node(state: RAGState):
         }
     )
 
-    return {"conversation_for_generation": conversation_for_generation}
+    return {
+        "conversation_for_generation": conversation_for_generation,
+    }
 
 
 def generate_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
+
     payload = {
         "messages": state["conversation_for_generation"],
         "stream": state.get("stream", False),
+        "tracing_headers": tracing_headers,
     }
 
     if state.get("stream"):

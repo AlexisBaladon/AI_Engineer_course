@@ -5,6 +5,7 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langsmith import traceable
 
 def build_messages(raw_messages):
     messages = []
@@ -66,6 +67,7 @@ def generate_and_trace(llm, messages, tools={}):
     }, 200
 
 
+@traceable(type="llm", name="Agent")
 def stream_response(llm, messages, tools=None):
     """
     Streams the response from the LLM while supporting tool calling.

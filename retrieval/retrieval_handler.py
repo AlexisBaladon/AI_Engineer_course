@@ -6,6 +6,7 @@ from rank_bm25 import BM25Okapi
 from langchain_openai import OpenAIEmbeddings
 import numpy as np
 import faiss
+from langsmith import traceable
 
 
 def tokenize(sentence: str):
@@ -80,6 +81,7 @@ def cosine_similarity(a, b):
     )
 
 
+@traceable(run_type="llm", name="Hybrid search")
 def search(
     query: str,
     bm25: BM25Okapi,

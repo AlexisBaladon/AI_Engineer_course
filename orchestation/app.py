@@ -28,7 +28,7 @@ from graph_handler import (
 )
 from observability.langsmith_tracing import (
     traceable,
-    get_current_run_tree,
+    get_tracing_headers,
     decode_stream,
 )
 from orchestration_controller import (
@@ -78,9 +78,6 @@ def answer_query_and_trace(
     role="user",
     stream: bool = False,
 ):
-    tracing_tree = get_current_run_tree()
-    tracing_headers = tracing_tree.to_headers()
-
     result = rag_graph.invoke(
         {
             "user_conversation": messages,
@@ -109,6 +106,7 @@ def answer_query_and_trace(
     }
 
     if stream:
+        tracing_headers = get_tracing_headers()
         chunk_generator = generate_chunks(
             result["answer_stream"],
             additional_information=additional_information,

@@ -31,6 +31,8 @@ class RAGState(TypedDict):
 
     enough_context: bool
 
+    tracing_headers: dict | None
+
 
 def route_after_judge(state: RAGState):
     """

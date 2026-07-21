@@ -24,11 +24,13 @@ embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
 )
 
-@app.route("/retrieve")
+@app.route("/retrieve", methods=["POST"])
 def retrieve():
-    query = request.args.get("query", None)
-    top_k = request.args.get("top_k", 5)
+    data = request.get_json()
+    query = data.get("query", None)
+    top_k = data.get("top_k", 5)
     top_k = int(top_k)
+    tracing_headers = data.get("tracing_headers", {})
 
     if not query:
         return jsonify({
@@ -42,6 +44,7 @@ def retrieve():
         embeddings=embeddings,
         chunks=chunks,
         top_k=top_k,
+        langsmith_extra={"parent": tracing_headers},
     )
     
     return jsonify(results), 200

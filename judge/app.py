@@ -23,7 +23,7 @@ query_rewriting_llm = ChatOpenAI(
     temperature=0.2,
 )
 
-def judge_query(query: str, chunks: list[dict]):
+def judge_query(query: str, chunks: list[dict], **kwargs):
     if query is None:
         return {
             "error": "query is a required attribute in the request"
@@ -38,12 +38,13 @@ def judge_query(query: str, chunks: list[dict]):
         query=query,
         chunks=chunks,
         llm=judge_llm,
+        **kwargs,
     )
 
     return result, 200
 
 
-def rewrite_query_request(query: str, chunks: list[dict]):
+def rewrite_query_request(query: str, chunks: list[dict], **kwargs):
     if query is None:
         return {
             "error": "query is a required attribute in the request"
@@ -58,6 +59,7 @@ def rewrite_query_request(query: str, chunks: list[dict]):
         query=query,
         chunks=chunks,
         llm=query_rewriting_llm,
+        **kwargs,
     )
 
     return {
@@ -71,10 +73,12 @@ def judge():
 
     query = data.get("query")
     chunks = data.get("chunks")
+    tracing_headers = data.get("tracing_headers")
 
     result, status_code = judge_query(
         query,
         chunks,
+        langsmith_extra={"parent": tracing_headers}
     )
 
     return jsonify(result), status_code
@@ -86,10 +90,12 @@ def rewrite():
 
     query = data.get("query")
     chunks = data.get("chunks")
+    tracing_headers = data.get("tracing_headers")
 
     result, status_code = rewrite_query_request(
         query,
         chunks,
+        langsmith_extra={"parent": tracing_headers}
     )
 
     return jsonify(result), status_code

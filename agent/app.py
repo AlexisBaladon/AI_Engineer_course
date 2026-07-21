@@ -40,6 +40,7 @@ def generate():
 
     raw_messages = body.get("messages", [])
     stream = body.get("stream", False)
+    tracing_headers = body.get("tracing_headers", {})
 
     if not raw_messages:
         return jsonify({
@@ -52,7 +53,12 @@ def generate():
         return jsonify({"error": str(exc)}), 400
     if stream:
         return Response(
-            stream_with_context(stream_response(llm, messages, tools=tools)),
+            stream_with_context(stream_response(
+                llm, 
+                messages, 
+                tools=tools, 
+                langsmith_extra={"parent": tracing_headers}
+            )),
             mimetype="text/event-stream",
         )
     result, status_code = generate_and_trace(llm, messages, tools=tools)

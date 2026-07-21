@@ -1,5 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 
 import json
 
@@ -19,7 +20,7 @@ Example:
 [3, 1, 0, 2]
 """
 
-
+@traceable(type="llm", name="Rerank documents")
 def rerank_chunks(
     query: str,
     chunks: list[dict],
