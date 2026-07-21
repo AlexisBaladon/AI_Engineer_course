@@ -1,6 +1,7 @@
-import json
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
 
-from openai import OpenAI
+import json
 
 
 RERANKING_PROMPT = """
@@ -22,8 +23,7 @@ Example:
 def rerank_chunks(
     query: str,
     chunks: list[dict],
-    openai_client: OpenAI,
-    model: str = "gpt-4.1-mini",
+    llm: ChatOpenAI,
     reranking_prompt=RERANKING_PROMPT,
 ):
     docs = []
@@ -31,8 +31,12 @@ def rerank_chunks(
     for i, chunk in enumerate(chunks):
         docs.append(f"[{i}]\n{chunk['chunk_text']}")
 
-    prompt = reranking_prompt.format(query=query, documents=chr(10).join(docs))
-    response = openai_client.responses.create(model=model, input=prompt)
-    ranking = json.loads(response.output_text)
+    prompt = reranking_prompt.format(query=query, documents="\n".join(docs))
+    response = llm.invoke(
+        [
+            HumanMessage(content=prompt)
+        ]
+    )
+    ranking = json.loads(response.content)
 
     return [chunks[i] for i in ranking]

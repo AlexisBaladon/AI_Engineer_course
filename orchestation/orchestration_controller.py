@@ -4,6 +4,7 @@ from prompts_handler import (
     fill_user_prompt,
     system_prompt,
 )
+from orchestation.mcp_adapters.image_mcp import handle_images_mcp
 from constants import (
     RETRIEVAL_HOST,
     RETRIEVAL_PORT,
@@ -135,7 +136,14 @@ def build_prompt_node(state: RAGState):
     documents =  [chunk["chunk_text"] for chunk in chunks]
     images = [chunk["images"] for chunk in chunks]
     urls = [chunk["url"] for chunk in chunks]
-    rag_prompt = fill_user_prompt(state["query"], documents, urls, images, role)
+    rag_prompt = fill_user_prompt(
+        state["query"], 
+        documents, 
+        urls, 
+        images, 
+        role, 
+        handle_images_mcp,
+    )
     
     conversation_for_generation = [
         {

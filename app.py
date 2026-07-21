@@ -11,7 +11,7 @@ from flask import (
 from flask_cors import CORS
 from langsmith import traceable
 from openai import OpenAI
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from flask_limiter import Limiter
 from langchain_core.tools import tool
 from flask_limiter.util import get_remote_address
@@ -39,6 +39,7 @@ from orchestation.observability.langsmith_tracing import (
     decode_stream, 
     get_current_run_tree
 )
+from orchestation.mcp_adapters.image_mcp import handle_images_mcp
 from orchestation.prompts_handler import (
     fill_user_prompt,
     system_prompt,
@@ -91,6 +92,14 @@ llm = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0,
     streaming=True,
+)
+query_rewriting_llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0.2,
+    streaming=True,
+)
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small",
 )
 
 
@@ -219,7 +228,7 @@ def retrieve_node(state: RAGState):
         query=query,
         bm25=bm25,
         faiss_index=faiss_index,
-        openai_client=openai_client,
+        embeddings=embeddings,
         chunks=chunks,
         top_k=top_k,
     )
@@ -236,7 +245,7 @@ def rank_node(state: RAGState):
     reranked_results = rerank_chunks(
         state["query"],
         state["retrieved_chunks"],
-        openai_client,
+        llm,
     )
 
     top_results = reranked_results[:top_k]
@@ -252,7 +261,14 @@ def build_prompt_node(state: RAGState):
     documents =  [chunk["chunk_text"] for chunk in chunks]
     images = [chunk["images"] for chunk in chunks]
     urls = [chunk["url"] for chunk in chunks]
-    rag_prompt = fill_user_prompt(state["query"], documents, urls, images, role)
+    rag_prompt = fill_user_prompt(
+        state["query"],
+        documents,
+        urls,
+        images,
+        role,
+        handle_images_mcp,
+    )
     
     conversation_for_generation = [
         {
@@ -282,7 +298,7 @@ def judge_context_node(state: RAGState):
     result = judge_context(
         state["query"],
         state["retrieved_chunks"],
-        openai_client,
+        llm,
     )
 
     return {
@@ -294,7 +310,7 @@ def rewrite_query_node(state: RAGState):
     result = rewrite_query(
         state["query"], 
         state["retrieved_chunks"], 
-        openai_client
+        query_rewriting_llm,
     )
 
     rewritten_query = result["query"]

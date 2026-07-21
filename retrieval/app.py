@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from openai import OpenAI
+from langchain_openai import OpenAIEmbeddings
 
 from retrieval_handler import (
     load_chunks,
@@ -20,8 +20,9 @@ app = Flask(__name__)
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25_index = build_bm25_index(chunks)
 faiss_index = build_faiss_index(chunks)
-openai_client = OpenAI()
-
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+)
 
 @app.route("/retrieve")
 def retrieve():
@@ -38,7 +39,7 @@ def retrieve():
         query=query,
         bm25=bm25_index,
         faiss_index=faiss_index,
-        openai_client=openai_client,
+        embeddings=embeddings,
         chunks=chunks,
         top_k=top_k,
     )

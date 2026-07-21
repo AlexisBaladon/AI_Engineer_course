@@ -1,4 +1,4 @@
-from mcp_adapters.image_mcp import handle_images_mcp
+from typing import Callable
 
 
 EXPERTISE_AREA = "the chess club Nau64"
@@ -33,6 +33,7 @@ def fill_user_prompt(
     urls: list[str],
     images: list[list[str]],
     role: str,
+    handle_images_mcp: Callable,
     user_prompt=user_prompt,
 ):
     if len(documents) != len(urls):

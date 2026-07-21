@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
 
 from reranking_handler import (
     rerank_chunks,
@@ -14,7 +14,10 @@ from constants import (
 
 
 app = Flask(__name__)
-openai_client = OpenAI()
+llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0,
+)
 
 
 def rank_and_trace(query: str, chunks: list[dict], top_k=3):
@@ -31,7 +34,7 @@ def rank_and_trace(query: str, chunks: list[dict], top_k=3):
     reranked_results = rerank_chunks(
         query,
         chunks,
-        openai_client,
+        llm,
     )
 
     top_results = reranked_results[:top_k]

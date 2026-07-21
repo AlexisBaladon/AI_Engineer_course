@@ -3,7 +3,7 @@ import json
 from collections import defaultdict
 
 from rank_bm25 import BM25Okapi
-from openai import OpenAI
+from langchain_openai import OpenAIEmbeddings
 import numpy as np
 import faiss
 
@@ -84,10 +84,9 @@ def search(
     query: str,
     bm25: BM25Okapi,
     faiss_index: faiss.IndexFlatIP,
-    openai_client: OpenAI,
+    embeddings: OpenAIEmbeddings,
     chunks: list[dict],
     top_k: int = 10,
-    embedding_model: str = "text-embedding-3-small",
 ):
     # Lexical retrieval
     tokenized_query = tokenize(query)
@@ -105,14 +104,8 @@ def search(
     lexical_candidates = lexical_ranked[:top_k]
 
     # Semantic retrieval
-    query_embedding = (
-        openai_client.embeddings.create(
-            model=embedding_model,
-            input=query,
-        )
-        .data[0]
-        .embedding
-    )
+    query_embedding = embeddings.embed_query(query)
+
 
     query_embedding = np.array(
         [query_embedding],

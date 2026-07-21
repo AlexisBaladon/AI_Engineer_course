@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
 
 from reasoning_handler import (
     judge_context,
@@ -14,8 +14,14 @@ from constants import (
 
 
 app = Flask(__name__)
-openai_client = OpenAI()
-
+judge_llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0,
+)
+query_rewriting_llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0.2,
+)
 
 def judge_query(query: str, chunks: list[dict]):
     if query is None:
@@ -31,7 +37,7 @@ def judge_query(query: str, chunks: list[dict]):
     result = judge_context(
         query=query,
         chunks=chunks,
-        openai_client=openai_client,
+        llm=judge_llm,
     )
 
     return result, 200
@@ -51,7 +57,7 @@ def rewrite_query_request(query: str, chunks: list[dict]):
     rewritten_query = rewrite_query(
         query=query,
         chunks=chunks,
-        openai_client=openai_client,
+        llm=query_rewriting_llm,
     )
 
     return {
