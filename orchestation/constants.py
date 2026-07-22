@@ -11,6 +11,9 @@ PORT = 1232
 DEBUG = (os.getenv("DEBUG", "true").lower() == "true")
 
 # Server connections
+FILTER_HOST = os.getenv("FILTER_HOST", "localhost")
+FILTER_PORT = os.getenv("FILTER_PORT", 1237)
+
 RETRIEVAL_HOST = os.getenv("RETRIEVAL_HOST", "localhost")
 RETRIEVAL_PORT = os.getenv("RETRIEVAL_PORT", 1230)
 

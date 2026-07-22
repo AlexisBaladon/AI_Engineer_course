@@ -17,8 +17,6 @@ from constants import (
     DEBUG,
     HOOK_HOST,
     HOOK_PORT,
-    GENERATION_HOST,
-    GENERATION_PORT,
 )
 from prompts_handler import (
     system_prompt,
@@ -32,6 +30,7 @@ from observability.langsmith_tracing import (
     decode_stream,
 )
 from orchestration_controller import (
+    filter_node,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -50,6 +49,7 @@ CORS(
 )
 
 rag_graph = build_graph(
+    filter_node,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -84,7 +84,7 @@ def answer_query_and_trace(
             "stream": stream,
             "role": role,
             "iteration": 0,
-            "max_iterations": 3,
+            "max_iterations": 1,
             "query_history": [],
         }
     )
@@ -101,9 +101,12 @@ def answer_query_and_trace(
                 "lexical_score": chunk["lexical_score"],
                 "semantic_score": chunk["semantic_score"],
             }
-            for chunk in result["retrieved_chunks"]
+            for chunk in result.get("retrieved_chunks", [])
         ],
+        "is_inappropriate": result["is_inappropriate"]
     }
+
+    status_code = 500 if result["is_inappropriate"] else 200
 
     if stream:
         tracing_headers = get_tracing_headers()
@@ -114,11 +117,11 @@ def answer_query_and_trace(
                 "parent": tracing_headers,
             },
         )
-        return chunk_generator, None
+        return chunk_generator, status_code
 
     additional_information["answer"] = result["answer"]
 
-    return additional_information, 200
+    return additional_information, status_code
 
 
 @app.route("/run_chain", methods=["POST"])
@@ -129,13 +132,14 @@ def run_chain():
     role = body.get("role", "user")
     stream = body.get("stream", False)
 
-    if stream:
-        chunk_generator, _ = answer_query_and_trace(
-            messages,
-            role,
-            stream=True,
-        )
+    result, status_code = answer_query_and_trace(
+        messages,
+        role,
+        stream=stream,
+    )
 
+    if stream:
+        chunk_generator = result
         return Response(
             stream_with_context(chunk_generator),
             content_type="text/event-stream",

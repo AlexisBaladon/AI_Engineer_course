@@ -48,6 +48,10 @@ from orchestation.graph_handler import (
     RAGState,
     build_graph,
 )
+from filter.filter_handler import (
+    filter_query,
+    QueryFilter,
+)
 from retrieval.retrieval_handler import (
     load_chunks,
     build_bm25_index,
@@ -85,6 +89,7 @@ limiter = Limiter(
 )
 
 openai_client = OpenAI()
+query_filter = QueryFilter(openai_client)
 chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25 = build_bm25_index(chunks)
 faiss_index = build_faiss_index(chunks)
@@ -101,6 +106,7 @@ query_rewriting_llm = ChatOpenAI(
 embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
 )
+DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
 
 
 @tool
@@ -216,13 +222,39 @@ def _get_last_message(user_conversation: list[dict]):
     )
 
 
-def retrieve_node(state: RAGState):
-    top_k = 5
+class StaticResponseStream:
+    def __init__(self, response: str):
+        self.response = response
 
+    def __iter__(self):
+        yield f'data: {{"token": "{self.response}"}}\n\n'
+        yield "data: [DONE]\n\n"
+
+
+def filter_node(state: RAGState):
     query = state.get("query")
 
     if query is None:
         query = _get_last_message(state["user_conversation"])
+
+    filtered_query = filter_query(query, query_filter)
+    is_inappropriate = filtered_query["is_inappropriate"]
+
+    extra_results = {} 
+    if is_inappropriate:
+        extra_results["answer"] = DEFAULT_INAPPROPRIATE_RESPONSE
+        extra_results["answer_stream"] = StaticResponseStream(DEFAULT_INAPPROPRIATE_RESPONSE)
+
+    return {
+        "query": query,
+        "is_inappropriate": is_inappropriate,
+        **extra_results,
+    }
+
+
+def retrieve_node(state: RAGState):
+    query = state["query"]
+    top_k = 5
 
     retrieved_chunks = search(
         query=query,
@@ -354,6 +386,7 @@ def generate_node(state: RAGState):
 
 
 rag_graph = build_graph(
+    filter_node,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -402,8 +435,9 @@ def answer_query_and_trace(messages: list[str], role="user", stream: bool = Fals
                     "lexical_score": chunk["lexical_score"],
                     "semantic_score": chunk["semantic_score"],
                 }
-                for chunk in result["retrieved_chunks"]
+                for chunk in result.get("retrieved_chunks", []) 
             ],
+            "is_inappropriate": result["is_inappropriate"]
         }
         result["answer_stream"] = generate_chunks(
             result["answer_stream"], 
@@ -432,7 +466,6 @@ def run_chain():
             mimetype="text/event-stream",
         )
 
-    result, status_code = answer_query_and_trace(messages, role, stream=False)
     return jsonify(result), status_code
 
 

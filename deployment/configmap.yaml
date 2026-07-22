@@ -29,6 +29,10 @@ data:
   AUTHENTICATION_HOST: "authentication"
   AUTHENTICATION_PORT: "1234"
 
+  # Filter
+  FILTER_HOST: "filter"
+  FILTER_PORT: "1237"
+
   # Retrieval
   RETRIEVAL_HOST: "retrieval"
   RETRIEVAL_PORT: "1230"

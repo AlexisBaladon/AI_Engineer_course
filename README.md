@@ -35,7 +35,7 @@ Description of the environment variables used in the application:
 - `ENCRYPTION_SECRET_KEY`: A secret key used for encryption. It should be generate using python -c "import secrets; print(secrets.token_hex(16))".
 
 
-## 💻🖥️💻 Option 1: Deployment using Kubernetes
+## 💻🖥️💻 Deployment option 1: Kubernetes
 
 ### 1. Verify kubernetes cluster is created
 Kubernetes must be installed and a cluster must be created in order to run the application.
@@ -109,13 +109,15 @@ In order to build and push docker images to dockerhub, which are then pulled by 
 python push_docker_containers.py --username <DOCKERHUB_USERNAME>
 ```
 
-## 🐳 Option 2: Deployment using Docker compose
+Always make sure that the containers you push are public so that anyone can pull the images.
+
+## 🐳 Deployment option 2: Docker compose
 ### 1. Build and run the docker images
 ```
 docker compose --build up
 ```
 
-## 🐍⚛️ Option 3: Deployment using vanilla python & React
+## 🐍⚛️ Deployment option 3: Vanilla python & React
 ### 1. Install dependencies
 For the backend:
 ```
@@ -154,7 +156,7 @@ cd frontend/my-app
 npm run dev
 ```
 
-## 💫 Option 4: Deploy to Netlify & AWS
+## 💫 Deployment option 4: Netlify & AWS
 
 ### Deploying the application for the first time
 
@@ -192,7 +194,7 @@ sudo systemctl restart nauai
 ```
 
 
-## 🌐 Option 5: Access to an already deployed application
+## 🌐 Deployment option 5: Access to an already deployed application
 You can access the deployed application at the following URL: [https://nauai.netlify.app/](https://nauai.netlify.app/)
 
 

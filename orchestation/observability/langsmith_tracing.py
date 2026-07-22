@@ -11,7 +11,7 @@ def decode_stream(tokens: list[str]):
     for token in tokens:
         if "[DONE]" in token:
             break
-
+        
         cleaned_token = json.loads(token).get("token", "")
         final_response = final_response + cleaned_token
 

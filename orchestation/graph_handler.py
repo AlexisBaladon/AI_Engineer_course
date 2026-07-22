@@ -8,6 +8,9 @@ from langgraph.graph import (
 
 
 class RAGState(TypedDict):
+    # Filtering
+    is_inappropriate: bool
+
     # Retrieval
     query: str
     retrieved_chunks: list
@@ -34,6 +37,18 @@ class RAGState(TypedDict):
     tracing_headers: dict | None
 
 
+def route_filtered_queries(state: RAGState):
+    """
+    Determines whether the graph should continue
+    or abort the RAG process.
+    """
+
+    if state["is_inappropriate"]:
+        return "end"
+
+    return "retrieve"
+
+
 def route_after_judge(state: RAGState):
     """
     Determines whether the graph should continue
@@ -50,6 +65,7 @@ def route_after_judge(state: RAGState):
 
 
 def build_graph(
+    filter_node,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -57,8 +73,12 @@ def build_graph(
     build_prompt_node,
     generate_node,
 ):
-
     graph_builder = StateGraph(RAGState)
+
+    graph_builder.add_node(
+        "filter",
+        filter_node,
+    )
 
     graph_builder.add_node(
         "retrieve",
@@ -92,7 +112,16 @@ def build_graph(
 
     graph_builder.add_edge(
         START,
-        "retrieve",
+        "filter",
+    )
+
+    graph_builder.add_conditional_edges(
+        "filter",
+        route_filtered_queries,
+        {
+            "retrieve": "retrieve",
+            "end": END,
+        },
     )
 
     graph_builder.add_edge(

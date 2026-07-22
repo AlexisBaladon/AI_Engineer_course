@@ -7,6 +7,8 @@ from prompts_handler import (
 from mcp_adapters.image_mcp import handle_images_mcp
 from observability.langsmith_tracing import get_tracing_headers
 from constants import (
+    FILTER_HOST,
+    FILTER_PORT,
     RETRIEVAL_HOST,
     RETRIEVAL_PORT,
     RANKING_HOST,
@@ -24,6 +26,8 @@ from graph_handler import (
     RAGState,
 )
 
+DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
+
 
 def _get_last_message(user_conversation: list[dict]):
     return next(
@@ -36,12 +40,53 @@ def _get_last_message(user_conversation: list[dict]):
     )
 
 
-def retrieve_node(state: RAGState):
+class StaticResponseStream:
+    def __init__(self, response: str):
+        self.response = response
+
+    def iter_content(self, chunk_size=None):
+        response = f'data: {{"token": "{self.response}"}}\n\n'
+        yield response.encode("utf-8")
+
+        yield "data: [DONE]\n\n".encode("utf-8")
+
+
+def filter_node(state: RAGState):
     tracing_headers = get_tracing_headers()
     query = state.get("query")
 
     if query is None:
         query = _get_last_message(state["user_conversation"])
+
+    payload = {
+        "query": query,
+        "tracing_headers": tracing_headers,
+    }
+
+    filter_response = requests.post(
+        f"http://{FILTER_HOST}:{FILTER_PORT}/filter",
+        json=payload,
+        timeout=30,
+    )
+    filter_response.raise_for_status()
+    filter_information = filter_response.json()
+    is_inappropriate = filter_information["is_inappropriate"]
+
+    extra_results = {} 
+    if is_inappropriate:
+        extra_results["answer"] = DEFAULT_INAPPROPRIATE_RESPONSE
+        extra_results["answer_stream"] = StaticResponseStream(DEFAULT_INAPPROPRIATE_RESPONSE)
+
+    return {
+        "query": query,
+        "is_inappropriate": is_inappropriate,
+        **extra_results,
+    }
+
+
+def retrieve_node(state: RAGState):
+    tracing_headers = get_tracing_headers()
+    query = state.get("query")
 
     payload = {
         "query": query,

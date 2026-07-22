@@ -64,12 +64,29 @@ services:
 
       AUTHENTICATION_HOST: authentication
       AUTHENTICATION_PORT: 1234
+
+      FILTER_HOST: filter
+      FILTER_PORT: 1237
     depends_on:
+      - filter
       - retrieval
       - ranking
       - judge
       - agent
       - authentication
+    restart: unless-stopped
+
+  filter:
+    build:
+      context: ./filter
+    container_name: nau_filter
+    ports:
+      - "1237:1237"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1237
     restart: unless-stopped
 
   retrieval:
