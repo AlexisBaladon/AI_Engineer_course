@@ -31,6 +31,7 @@ def retrieve():
     top_k = data.get("top_k", 5)
     top_k = int(top_k)
     tracing_headers = data.get("tracing_headers", {})
+    user_id = data.get("user_id", "default")
 
     if not query:
         return jsonify({
@@ -44,6 +45,7 @@ def retrieve():
         embeddings=embeddings,
         chunks=chunks,
         top_k=top_k,
+        user_id=user_id,
         langsmith_extra={"parent": tracing_headers},
     )
     

@@ -19,30 +19,6 @@ llm = ChatOpenAI(
 )
 
 
-def rank_and_trace(query: str, chunks: list[dict], top_k=3, **kwargs):
-    if query is None:
-        return {
-            "error": "query is a required attribute in the request"
-        }, 400
-    
-    if chunks is None:
-        return {
-            "error": "chunks are a required attribute in the request"
-        }, 400
-
-    reranked_results = rerank_chunks(
-        query,
-        chunks,
-        llm,
-        **kwargs,
-    )
-
-    top_results = reranked_results[:top_k]
-
-    return top_results, 200
-
-
-
 @app.route("/rank", methods=["POST"])
 def rank():
     data = request.get_json()
@@ -51,14 +27,29 @@ def rank():
     top_k = data.get("top_k", 3)
     top_k = int(top_k)
     tracing_headers = data.get("tracing_headers")
-    result, status_code = rank_and_trace(
-        query, 
-        chunks, 
-        top_k, 
+    user_id = data.get("user_id", "default")
+
+    if query is None:
+        return jsonify({
+            "error": "query is a required attribute in the request"
+        }), 400
+    
+    if chunks is None:
+        return jsonify({
+            "error": "chunks are a required attribute in the request"
+        }), 400
+
+    reranked_results = rerank_chunks(
+        query,
+        chunks,
+        user_id,
+        llm,
         langsmith_extra={"parent": tracing_headers}
     )
+
+    top_results = reranked_results[:top_k]
     
-    return jsonify(result), status_code
+    return jsonify(top_results), 200
 
 
 @app.route("/health")

@@ -41,6 +41,7 @@ def generate():
     raw_messages = body.get("messages", [])
     stream = body.get("stream", False)
     tracing_headers = body.get("tracing_headers", {})
+    user_id = body.get("user_id", "default")
 
     if not raw_messages:
         return jsonify({
@@ -56,12 +57,13 @@ def generate():
             stream_with_context(stream_response(
                 llm, 
                 messages, 
-                tools=tools, 
+                tools=tools,
+                user_id=user_id,
                 langsmith_extra={"parent": tracing_headers}
             )),
             mimetype="text/event-stream",
         )
-    result, status_code = generate_and_trace(llm, messages, tools=tools)
+    result, status_code = generate_and_trace(llm, messages, user_id=user_id, tools=tools)
 
     return jsonify(result), status_code
 

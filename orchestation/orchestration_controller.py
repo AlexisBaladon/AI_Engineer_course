@@ -54,6 +54,7 @@ class StaticResponseStream:
 def filter_node(state: RAGState):
     tracing_headers = get_tracing_headers()
     query = state.get("query")
+    user_id = state.get("user_id")
 
     if query is None:
         query = _get_last_message(state["user_conversation"])
@@ -61,6 +62,7 @@ def filter_node(state: RAGState):
     payload = {
         "query": query,
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     filter_response = requests.post(
@@ -87,11 +89,13 @@ def filter_node(state: RAGState):
 def retrieve_node(state: RAGState):
     tracing_headers = get_tracing_headers()
     query = state.get("query")
+    user_id = state.get("user_id")
 
     payload = {
         "query": query,
         "top_k": 5,
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     retrieval_response = requests.post(
@@ -112,12 +116,14 @@ def retrieve_node(state: RAGState):
 
 def rank_node(state: RAGState):
     tracing_headers = get_tracing_headers()
+    user_id = state.get("user_id")
 
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
         "top_k": 3,
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     ranked_response = requests.post(
@@ -137,11 +143,13 @@ def rank_node(state: RAGState):
 
 def judge_context_node(state: RAGState):
     tracing_headers = get_tracing_headers()
+    user_id = state.get("user_id")
 
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     response = requests.post(
@@ -161,11 +169,13 @@ def judge_context_node(state: RAGState):
 
 def rewrite_query_node(state: RAGState):
     tracing_headers = get_tracing_headers()
+    user_id = state.get("user_id")
 
     payload = {
         "query": state["query"],
         "chunks": state["retrieved_chunks"],
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     response = requests.post(
@@ -231,11 +241,13 @@ def build_prompt_node(state: RAGState):
 
 def generate_node(state: RAGState):
     tracing_headers = get_tracing_headers()
+    user_id = state.get("user_id")
 
     payload = {
         "messages": state["conversation_for_generation"],
         "stream": state.get("stream", False),
         "tracing_headers": tracing_headers,
+        "user_id": user_id,
     }
 
     if state.get("stream"):

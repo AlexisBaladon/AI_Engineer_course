@@ -31,10 +31,13 @@ class RAGState(TypedDict):
     query_history: list[str]
     iteration: int
     max_iterations: int
-
     enough_context: bool
 
+    # Tracing
     tracing_headers: dict | None
+
+    # User security
+    user_id: str
 
 
 def route_filtered_queries(state: RAGState):

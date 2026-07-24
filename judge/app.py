@@ -74,10 +74,12 @@ def judge():
     query = data.get("query")
     chunks = data.get("chunks")
     tracing_headers = data.get("tracing_headers")
+    user_id = data.get("user_id", "default")
 
     result, status_code = judge_query(
         query,
         chunks,
+        user_id=user_id,
         langsmith_extra={"parent": tracing_headers}
     )
 
@@ -91,10 +93,12 @@ def rewrite():
     query = data.get("query")
     chunks = data.get("chunks")
     tracing_headers = data.get("tracing_headers")
+    user_id = data.get("user_id", "default")
 
     result, status_code = rewrite_query_request(
         query,
         chunks,
+        user_id=user_id,
         langsmith_extra={"parent": tracing_headers}
     )
 

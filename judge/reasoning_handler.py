@@ -19,6 +19,7 @@ def judge_context(
     query: str,
     chunks: list[dict],
     llm: ChatOpenAI,
+    user_id="default",
 ):
     context = _build_context(chunks)
     messages = [
@@ -40,7 +41,7 @@ def judge_context(
             )
         ),
     ]
-    response = llm.invoke(messages)
+    response = llm.bind(user=user_id).invoke(messages)
 
     return json.loads(response.content)
 
@@ -50,6 +51,7 @@ def rewrite_query(
     query: str,
     chunks: list[dict],
     llm: ChatOpenAI,
+    user_id="default",
 ):
     context = _build_context(chunks)
     messages = [
@@ -74,6 +76,6 @@ def rewrite_query(
             )
         ),
     ]
-    response = llm.invoke(messages)
+    response = llm.bind(user=user_id).invoke(messages)
 
     return response.content

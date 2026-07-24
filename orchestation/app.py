@@ -75,6 +75,7 @@ def generate_chunks(answer_stream, additional_information: dict):
 @traceable(name="Main Chain")
 def answer_query_and_trace(
     messages: list[str],
+    user_id: str,
     role="user",
     stream: bool = False,
 ):
@@ -86,6 +87,7 @@ def answer_query_and_trace(
             "iteration": 0,
             "max_iterations": 1,
             "query_history": [],
+            "user_id": user_id,
         }
     )
 
@@ -103,7 +105,8 @@ def answer_query_and_trace(
             }
             for chunk in result.get("retrieved_chunks", [])
         ],
-        "is_inappropriate": result["is_inappropriate"]
+        "is_inappropriate": result["is_inappropriate"],
+        "user_id": user_id,
     }
 
     status_code = 500 if result["is_inappropriate"] else 200
@@ -131,9 +134,11 @@ def run_chain():
     messages = body.get("messages", [])
     role = body.get("role", "user")
     stream = body.get("stream", False)
+    user_id = body.get("user_id", "default")
 
     result, status_code = answer_query_and_trace(
         messages,
+        user_id,
         role,
         stream=stream,
     )

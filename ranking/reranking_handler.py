@@ -24,6 +24,7 @@ Example:
 def rerank_chunks(
     query: str,
     chunks: list[dict],
+    user_id: str,
     llm: ChatOpenAI,
     reranking_prompt=RERANKING_PROMPT,
 ):
@@ -33,7 +34,7 @@ def rerank_chunks(
         docs.append(f"[{i}]\n{chunk['chunk_text']}")
 
     prompt = reranking_prompt.format(query=query, documents="\n".join(docs))
-    response = llm.invoke(
+    response = llm.bind(user=user_id).invoke(
         [
             HumanMessage(content=prompt)
         ]

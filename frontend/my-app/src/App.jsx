@@ -12,6 +12,20 @@ const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || "http://localhost"
 const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 1235
 
 
+const STORAGE_KEY = "nau_user_id";
+
+function getUserId() {
+  let userId = localStorage.getItem(STORAGE_KEY);
+
+  if (!userId) {
+    userId = crypto.randomUUID();
+    localStorage.setItem(STORAGE_KEY, userId);
+  }
+
+  return userId;
+}
+
+
 export default function App() {
   const inputRef = useRef(null);
   
@@ -81,6 +95,7 @@ export default function App() {
   }
 
   async function sendMessage() {
+    const userId = getUserId()
     const content = inputRef.current.value.trim();
 
     if (!content || loading || streaming) return;
@@ -104,6 +119,7 @@ export default function App() {
         body: JSON.stringify({
           messages: updatedMessages,
           stream: true,
+          user_id: userId,
         }),
       });
 

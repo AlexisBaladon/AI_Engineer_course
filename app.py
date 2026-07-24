@@ -254,6 +254,7 @@ def filter_node(state: RAGState):
 
 def retrieve_node(state: RAGState):
     query = state["query"]
+    user_id = state["user_id"]
     top_k = 5
 
     retrieved_chunks = search(
@@ -263,6 +264,7 @@ def retrieve_node(state: RAGState):
         embeddings=embeddings,
         chunks=chunks,
         top_k=top_k,
+        user_id=user_id,
     )
 
     return {
@@ -273,10 +275,12 @@ def retrieve_node(state: RAGState):
 
 def rank_node(state: RAGState):
     top_k = 3
+    user_id = state.get("user_id")
 
     reranked_results = rerank_chunks(
         state["query"],
         state["retrieved_chunks"],
+        user_id,
         llm,
     )
 
@@ -322,6 +326,8 @@ def build_prompt_node(state: RAGState):
 
 
 def judge_context_node(state: RAGState):
+    user_id = state.get("user_id")
+
     if state["iteration"] >= state["max_iterations"]:
         return {
             "enough_context": True,
@@ -331,6 +337,7 @@ def judge_context_node(state: RAGState):
         state["query"],
         state["retrieved_chunks"],
         llm,
+        user_id=user_id,
     )
 
     return {
@@ -339,6 +346,8 @@ def judge_context_node(state: RAGState):
 
 
 def rewrite_query_node(state: RAGState):
+    user_id = state.get("user_id")
+
     result = rewrite_query(
         state["query"], 
         state["retrieved_chunks"], 
@@ -360,6 +369,7 @@ def rewrite_query_node(state: RAGState):
 def generate_node(state: RAGState):
     raw_messages = state["conversation_for_generation"]
     stream = state.get("stream", False)
+    user_id = state.get("user_id")
 
     if not raw_messages:
         return jsonify({
@@ -371,13 +381,13 @@ def generate_node(state: RAGState):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if stream:
-        answer_stream = stream_response(llm, messages, tools=tools)
+        answer_stream = stream_response(llm, messages, user_id=user_id, tools=tools)
 
         return {
             "answer": None,
             "answer_stream": answer_stream
         }
-    result, _ = generate_and_trace(llm, messages, tools=tools)
+    result, _ = generate_and_trace(llm, messages, user_id=user_id, tools=tools)
 
     return {
         "answer": result,
@@ -409,7 +419,7 @@ def generate_chunks(answer_stream, additional_information: dict):
 
 
 @traceable(name="Main Chain")
-def answer_query_and_trace(messages: list[str], role="user", stream: bool = False):
+def answer_query_and_trace(messages: list[str], user_id: str, role="user", stream: bool = False):
     tracing_tree = get_current_run_tree()
     tracing_headers = tracing_tree.to_headers()
 
@@ -417,6 +427,7 @@ def answer_query_and_trace(messages: list[str], role="user", stream: bool = Fals
         "user_conversation": messages,
         "stream": stream,
         "role": role,
+        "user_id": user_id,
         "iteration": 0,
         "max_iterations": 0,
         "query_history": [],
@@ -437,7 +448,8 @@ def answer_query_and_trace(messages: list[str], role="user", stream: bool = Fals
                 }
                 for chunk in result.get("retrieved_chunks", []) 
             ],
-            "is_inappropriate": result["is_inappropriate"]
+            "is_inappropriate": result["is_inappropriate"],
+            "user_id": user_id,
         }
         result["answer_stream"] = generate_chunks(
             result["answer_stream"], 
@@ -455,10 +467,11 @@ def run_chain():
 
     messages = body.get("messages", [])
     stream = body.get("stream", False)
+    user_id = body.get("user_id", "default")
     user = get_current_user(request.cookies, encryption_secret_key=ENCRYPTION_SECRET_KEY)
     role = ADMIN_ROLE if user is not None else USER_ROLE
 
-    result, status_code = answer_query_and_trace(messages, role, stream=stream)
+    result, status_code = answer_query_and_trace(messages, user_id, role, stream=stream)
 
     if stream:
         return Response(

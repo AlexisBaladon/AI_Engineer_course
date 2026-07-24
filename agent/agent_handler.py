@@ -37,7 +37,8 @@ def build_messages(raw_messages):
     return messages
 
 
-def generate_and_trace(llm, messages, tools={}):
+def generate_and_trace(llm, messages, user_id="default", tools={}):
+    llm = llm.bind(user=user_id)
 
     response = llm.invoke(messages)
 
@@ -68,10 +69,12 @@ def generate_and_trace(llm, messages, tools={}):
 
 
 @traceable(type="llm", name="Agent")
-def stream_response(llm, messages, tools=None):
+def stream_response(llm, messages, user_id="default", tools=None):
     """
     Streams the response from the LLM while supporting tool calling.
     """
+
+    llm = llm.bind(user=user_id)
 
     if tools is None:
         tools = {}

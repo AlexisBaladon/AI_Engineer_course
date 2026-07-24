@@ -89,6 +89,7 @@ def search(
     embeddings: OpenAIEmbeddings,
     chunks: list[dict],
     top_k: int = 10,
+    user_id=None
 ):
     # Lexical retrieval
     tokenized_query = tokenize(query)
@@ -106,7 +107,7 @@ def search(
     lexical_candidates = lexical_ranked[:top_k]
 
     # Semantic retrieval
-    query_embedding = embeddings.embed_query(query)
+    query_embedding = embeddings.embed_query(query, user=user_id)
 
 
     query_embedding = np.array(
