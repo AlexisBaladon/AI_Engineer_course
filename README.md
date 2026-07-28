@@ -54,7 +54,7 @@ kubectl create secret generic nau-secret --from-env-file=.env -n nau-ai
 
 ### 3. Create the namespace, deployment, and service in Kubernetes 
 ```
-kubectl apply --recursive -f deployment/
+kubectl apply --recursive -f k8_deploy/
 ```
 
 ### 4. Ensure ports are forwarded to the local machine

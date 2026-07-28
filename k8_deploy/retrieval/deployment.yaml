@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: retrieval
+  namespace: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: retrieval
+
+  template:
+    metadata:
+      labels:
+        app: retrieval
+
+    spec:
+      containers:
+        - name: retrieval
+
+          image: alexisbaladon/nau_retrieval:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1230
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1230"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1230
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1230

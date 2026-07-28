@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: agent
+  namespace: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: agent
+
+  template:
+    metadata:
+      labels:
+        app: agent
+
+    spec:
+      containers:
+        - name: agent
+
+          image: alexisbaladon/nau_agent:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1231
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1231"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1231
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1231

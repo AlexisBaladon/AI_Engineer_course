@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: judge
+  namespace: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: judge
+
+  template:
+    metadata:
+      labels:
+        app: judge
+
+    spec:
+      containers:
+        - name: judge
+
+          image: alexisbaladon/nau_judge:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1236
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1236"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1236
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1236

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ranking
+  namespace: nau-ai
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ranking
+
+  template:
+    metadata:
+      labels:
+        app: ranking
+
+    spec:
+      containers:
+        - name: ranking
+
+          image: alexisbaladon/nau_ranking:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 1233
+
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+
+            - name: PORT
+              value: "1233"
+
+          envFrom:
+            - configMapRef:
+                name: nau-config
+
+            - secretRef:
+                name: nau-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1233
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 1233

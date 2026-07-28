@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: nau-ingress
+  namespace: nau-ai
+
+  labels:
+    project: nau-ai
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - http:
+        paths:
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 5173
+
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: hook
+                port:
+                  number: 1235
