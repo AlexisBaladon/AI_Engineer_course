@@ -277,7 +277,7 @@ export default function App() {
                     className="suggestion-card"
                     onClick={() =>
                       sendPresetMessage(
-                        "¿Podrías mostrarme las jugadas realizadas en el 5to round del Sabatino Fide De Nau64 6 Junio de 2026?"
+                        "¿Podrías mostrarme los movimientos de alguna partida el sabatino del 6 junio de 2026?"
                       )
                     }
                   >

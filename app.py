@@ -100,7 +100,7 @@ query_rewriting_llm = ChatOpenAI(
     streaming=True,
 )
 embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small",
+    model="text-embedding-3-large",
 )
 DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
 
@@ -207,7 +207,7 @@ def filter_node(state: RAGState):
 def retrieve_node(state: RAGState):
     query = state["query"]
     user_id = state["user_id"]
-    top_k = 5
+    top_k = 10
 
     retrieved_chunks = search(
         query=query,

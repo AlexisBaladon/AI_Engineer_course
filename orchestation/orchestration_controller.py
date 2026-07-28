@@ -92,7 +92,7 @@ def retrieve_node(state: RAGState):
 
     payload = {
         "query": query,
-        "top_k": 5,
+        "top_k": 10,
         "tracing_headers": tracing_headers,
         "user_id": user_id,
     }

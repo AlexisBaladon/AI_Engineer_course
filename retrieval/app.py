@@ -21,14 +21,14 @@ chunks = load_chunks(CHUNKED_DATA_PATH, IMAGES_PATH)
 bm25_index = build_bm25_index(chunks)
 faiss_index = build_faiss_index(chunks)
 embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small",
+    model="text-embedding-3-large",
 )
 
 @app.route("/retrieve", methods=["POST"])
 def retrieve():
     data = request.get_json()
     query = data.get("query", None)
-    top_k = data.get("top_k", 5)
+    top_k = data.get("top_k", 10)
     top_k = int(top_k)
     tracing_headers = data.get("tracing_headers", {})
     user_id = data.get("user_id", "default")

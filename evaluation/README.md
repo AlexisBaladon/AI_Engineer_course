@@ -10,7 +10,7 @@
 |-----------|------:|
 | Date | 2026-07-13T21:09:35.956388+00:00 |
 | Git Commit | `38b9eea1d18f070dd2673219fac25e3257885714` |
-| Embedding Model | text-embedding-3-small |
+| Embedding Model | text-embedding-3-large |
 | Retrieval Method | Hybrid Search |
 | Re-ranking Model | gpt-4.1-mini |
 | LLM | gpt-4.1-mini |

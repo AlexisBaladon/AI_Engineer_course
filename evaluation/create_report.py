@@ -35,7 +35,7 @@ if __name__ == "__main__":
     retrieval_method = metadata.get("retrieval_method", "Hybrid Search")
     llm = metadata.get("llm_model", "gpt-4.1-mini")
     reranking_model = metadata.get("reranking_model", "gpt-4.1-mini")
-    embedding = metadata.get("embedding_model", "text-embedding-3-small")
+    embedding = metadata.get("embedding_model", "text-embedding-3-large")
 
     # -------------------------------
     # Metrics
