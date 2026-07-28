@@ -33,7 +33,7 @@ def create_chess_board_image_tool(moves: list[str]) -> str:
     except Exception as e:
         return {
             "success": False,
-            "result": "There was an error generating this particular image."
+            "result": f"There was an error generating this particular image: {e}."
         }
 
     # Postprocess output.
