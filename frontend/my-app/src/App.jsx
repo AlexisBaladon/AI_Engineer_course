@@ -201,7 +201,7 @@ export default function App() {
         {/* HEADER */}
         <div className="header">
           <div className="logo">NauAI</div>
-          <div className="subtitle">El agente oficial de Nau64</div>
+          <div className="subtitle">El agente (aún no) oficial de Nau64</div>
         </div>
 
         {
@@ -244,7 +244,7 @@ export default function App() {
                     className="suggestion-card"
                     onClick={() =>
                       sendPresetMessage(
-                        "¿Qué cursos hay disponibles en la academia?"
+                        "¿Qué tipo de cursos hay disponibles en la academia?"
                       )
                     }
                   >
@@ -259,14 +259,14 @@ export default function App() {
                       )
                     }
                   >
-                    🏆 Ver torneos realizados
+                    🏆 Ver últimos torneos
                   </button>
 
                   <button
                     className="suggestion-card"
                     onClick={() =>
                       sendPresetMessage(
-                        "En qué horarios se realizan clases en la academia? ¿En qué horario puedo pasar a visitar?"
+                        "En qué horarios se realizan clases en la academia?"
                       )
                     }
                   >
@@ -277,11 +277,11 @@ export default function App() {
                     className="suggestion-card"
                     onClick={() =>
                       sendPresetMessage(
-                        "¿Cómo puedo contactarme con la academia? ¿Dónde están ubicados?"
+                        "¿Podrías mostrarme las jugadas realizadas en el 5to round del Sabatino Fide De Nau64 6 Junio de 2026?"
                       )
                     }
                   >
-                    📱 Obtener formas de contacto
+                    ♟️ Ver últimas jugadas
                   </button>
 
                 </div>

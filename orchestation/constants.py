@@ -31,8 +31,3 @@ GENERATION_PORT = os.getenv("GENERATION_PORT", 1231)
 
 HOOK_HOST = os.getenv("HOOK_HOST", "localhost")
 HOOK_PORT = os.getenv("HOOK_PORT", 1235)
-
-# Observability
-ARIZE_SPACE_ID = os.getenv("AZIRE_SPACE_ID")
-ARIZE_API_KEY = os.getenv("AZIRE_API_KEY")
-ARIZE_PROJECT_NAME = os.getenv("ARIZE_PROJECT_NAME")

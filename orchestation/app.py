@@ -41,7 +41,6 @@ from orchestration_controller import (
     generate_node,
     get_agent_tool_image,
 )
-from observability.arize_tracing import tracer_provider as _
 
 
 app = Flask(__name__)

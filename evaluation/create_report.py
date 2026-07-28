@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime
 
 INPUT_FILE = "llm_metrics.json"
-OUTPUT_FILE = "report.md"
+OUTPUT_FILE = "README.md"
 
 
 def mean(values):

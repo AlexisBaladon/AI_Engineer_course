@@ -24,6 +24,8 @@ def create_chess_board_image_tool(moves: list[str]) -> str:
             ["e4 e5 Nf3 Nc6"]
 
             ["1.e4", "1...e5", "2.Nf3"]
+
+    IMPORTANT: Extract only the most important fragments of the match, like the opening and defense.
     """
     try:
         chess_board_result = create_chess_board_image(moves)
