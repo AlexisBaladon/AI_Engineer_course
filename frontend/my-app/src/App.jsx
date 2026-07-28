@@ -113,6 +113,7 @@ export default function App() {
     try {
       const res = await fetch(`${BACKEND_HOST}:${BACKEND_PORT}/chat`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

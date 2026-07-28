@@ -37,8 +37,10 @@ def build_messages(raw_messages):
     return messages
 
 
-def generate_and_trace(llm, messages, user_id="default", tools={}):
+def generate_and_trace(llm, messages, user_id="default", tool_mapping={}):
     llm = llm.bind(user=user_id)
+    tool_functions = tool_mapping.values()
+    llm = llm.bind_tools(tool_functions)
 
     response = llm.invoke(messages)
 
@@ -47,7 +49,7 @@ def generate_and_trace(llm, messages, user_id="default", tools={}):
         messages.append(response)
 
         for tool_call in response.tool_calls:
-            for tool_name, tool_func in tools.items():
+            for tool_name, tool_func in tool_mapping.items():
                 if tool_call["name"] == tool_name:
 
                     result = tool_func.invoke(
@@ -69,38 +71,54 @@ def generate_and_trace(llm, messages, user_id="default", tools={}):
 
 
 @traceable(type="llm", name="Agent")
-def stream_response(llm, messages, user_id="default", tools=None):
+def stream_response(llm, messages, user_id="default", tool_mapping=None, max_turns=10):
     """
     Streams the response from the LLM while supporting tool calling.
     """
-
-    llm = llm.bind(user=user_id)
-
-    if tools is None:
-        tools = {}
-
+    tool_mapping = tool_mapping or {}
     conversation = list(messages)
 
+    if tool_mapping:
+        llm = llm.bind_tools(list(tool_mapping.values()))
+    llm = llm.bind(user=user_id)
+
+    turns = 0
+
     while True:
+        turns += 1
+        if turns > max_turns:
+            yield (
+                f"data: "
+                f"{json.dumps({'error': 'Max tool-calling turns exceeded.'})}"
+                f"\n\n"
+            )
+            break
 
         assistant_message = None
 
         # Stream one assistant turn
-        for chunk in llm.stream(conversation):
+        try:
+            for chunk in llm.stream(conversation):
+                # Merge chunks together so tool_calls are reconstructed correctly
+                if assistant_message is None:
+                    assistant_message = chunk
+                else:
+                    assistant_message += chunk
 
-            # Merge chunks together so tool_calls are reconstructed correctly
-            if assistant_message is None:
-                assistant_message = chunk
-            else:
-                assistant_message += chunk
-
-            # Stream text immediately to the frontend
-            if chunk.content:
-                yield (
-                    f"data: "
-                    f"{json.dumps({'token': chunk.content})}"
-                    f"\n\n"
-                )
+                # Stream text immediately to the frontend
+                if chunk.content:
+                    yield (
+                        f"data: "
+                        f"{json.dumps({'token': chunk.content})}"
+                        f"\n\n"
+                    )
+        except Exception as e:
+            yield (
+                f"data: "
+                f"{json.dumps({'error': f'LLM streaming failed: {e}'})}"
+                f"\n\n"
+            )
+            break
 
         # Nothing generated
         if assistant_message is None:
@@ -115,21 +133,28 @@ def stream_response(llm, messages, user_id="default", tools=None):
 
         # Execute every requested tool
         for tool_call in assistant_message.tool_calls:
-
             tool_name = tool_call["name"]
+            tool = tool_mapping.get(tool_name)
 
-            if tool_name not in tools:
-                raise ValueError(f"Unknown tool: {tool_name}")
-
-            tool = tools[tool_name]
-
-            result = tool.invoke(tool_call["args"])
-
-            conversation.append(
-                ToolMessage(
-                    tool_call_id=tool_call["id"],
-                    content=str(result),
+            if tool is None:
+                conversation.append(
+                    ToolMessage(
+                        tool_call_id=tool_call["id"],
+                        content=f"Error: unknown tool '{tool_name}'.",
+                    )
                 )
-            )
+                continue
+
+            try:
+                # Pass the full tool_call so BaseTool.invoke returns a
+                # correctly-formed ToolMessage (handles content_and_artifact, etc.)
+                tool_message = tool.invoke(tool_call)
+            except Exception as e:
+                tool_message = ToolMessage(
+                    tool_call_id=tool_call["id"],
+                    content=f"Error executing tool '{tool_name}': {e}",
+                )
+
+            conversation.append(tool_message)
 
     yield "data: [DONE]\n\n"

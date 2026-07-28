@@ -29,6 +29,8 @@ from observability.langsmith_tracing import (
     get_tracing_headers,
     decode_stream,
 )
+from utils import get_additional_information
+from mcp_settings import define_mcp_settings 
 from orchestration_controller import (
     filter_node,
     retrieve_node,
@@ -50,6 +52,7 @@ CORS(
 
 rag_graph = build_graph(
     filter_node,
+    define_mcp_settings,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -91,23 +94,7 @@ def answer_query_and_trace(
         }
     )
 
-    additional_information = {
-        "system_prompt": system_prompt,
-        "query": result["query"],
-        "query_history": result.get("query_history", [result["query"]]),
-        "iterations": result.get("iteration", 0),
-        "role": result["role"],
-        "retrieval_information": [
-            {
-                "chunk_text": chunk["chunk_text"],
-                "lexical_score": chunk["lexical_score"],
-                "semantic_score": chunk["semantic_score"],
-            }
-            for chunk in result.get("retrieved_chunks", [])
-        ],
-        "is_inappropriate": result["is_inappropriate"],
-        "user_id": user_id,
-    }
+    additional_information = get_additional_information(result, system_prompt)
 
     status_code = 500 if result["is_inappropriate"] else 200
 

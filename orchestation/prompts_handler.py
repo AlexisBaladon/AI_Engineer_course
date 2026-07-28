@@ -1,13 +1,10 @@
-from typing import Callable
-
-
 EXPERTISE_AREA = "the chess club Nau64"
 
 system_prompt = """
 You are a chatbot, expert in {expertise_area}.
 
 The inputs you will recieve are:
-- A list of documents, and additional information about them.
+- A list of documents obtained by matching the last query against our database.
 - A query asking about information contained in them.
 
 The output you should provide must satisfy the following requirements:
@@ -27,13 +24,33 @@ Documents:
 system_prompt = system_prompt.format(expertise_area=EXPERTISE_AREA)
 
 
+def _handle_images(image_urls: list[str]):
+    """
+    This is one of the features only available for logged users,
+    which consists in showing image urls to the model prompt.
+    """
+    image_block = ""
+
+    if len(image_urls) > 0:
+        image_block = "\n".join(
+            f"- {image_url}"
+            for image_url in image_urls
+        )
+
+        image_block = (
+            "\n\n"
+            "Images:\n"
+            f"{image_block}"
+        )
+
+    return image_block
+
+
 def fill_user_prompt(
     query: str,
     documents: list[str],
     urls: list[str],
     images: list[list[str]],
-    role: str,
-    handle_images_mcp: Callable,
     user_prompt=user_prompt,
 ):
     if len(documents) != len(urls):
@@ -58,7 +75,7 @@ def fill_user_prompt(
             f"Content:\n{doc}"
         )
 
-        image_block = handle_images_mcp(role, image_urls)
+        image_block = _handle_images(image_urls)
         block += image_block
 
         document_blocks.append(block)

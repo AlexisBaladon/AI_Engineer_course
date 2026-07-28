@@ -13,7 +13,6 @@ from langsmith import traceable
 from openai import OpenAI
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from flask_limiter import Limiter
-from langchain_core.tools import tool
 from flask_limiter.util import get_remote_address
 
 from constants import (
@@ -29,7 +28,6 @@ from constants import (
     CHUNKED_DATA_PATH,
     IMAGES_PATH,
     TOOLS_IMAGES_DIR,
-    BACKEND_ORIGIN,
 )
 from authentication.authentication_handler import (
     create_token,
@@ -39,11 +37,13 @@ from orchestation.observability.langsmith_tracing import (
     decode_stream, 
     get_current_run_tree
 )
-from orchestation.mcp_adapters.image_mcp import handle_images_mcp
 from orchestation.prompts_handler import (
     fill_user_prompt,
     system_prompt,
 )
+from mcp_adapters.chessboard_renderer import all_tools
+from orchestation.utils import get_additional_information
+from orchestation.mcp_settings import define_mcp_settings
 from orchestation.graph_handler import (
     RAGState,
     build_graph,
@@ -70,10 +70,6 @@ from agent.agent_handler import (
     generate_and_trace,
     stream_response,
 )
-from agent.tools import (
-    create_chess_board_image,
-)
-
 import json
 import os
 
@@ -107,50 +103,6 @@ embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
 )
 DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
-
-
-@tool
-def create_chess_board_image_tool(moves: list[str], images_dir=TOOLS_IMAGES_DIR):
-    """
-    Creates an SVG image of a chess position.
-
-        Parameters:
-            moves: A list where EACH ELEMENT is a SINGLE move in SAN
-            (Standard Algebraic Notation).
-
-        Correct examples:
-            ["e4", "e5", "Nf3", "Nc6", "Bb5"]
-
-            ["d4", "Nf6", "c4", "g6", "Nc3"]
-
-        Incorrect examples:
-            ["1. e4 e5 2. Nf3 Nc6 3. Bb5"]
-
-            ["e4 e5 Nf3 Nc6"]
-
-            ["1.e4", "1...e5", "2.Nf3"]
-
-        Do NOT include move numbers.
-        Do NOT concatenate multiple moves into one string.
-        One SAN move per list element.
-        Include only valid chess sequences.
-    """
-    chess_board_result = create_chess_board_image(moves, images_dir)
-
-    if type(chess_board_result) == str:
-        return chess_board_result
-    
-    chess_board_result["url"] = f"{BACKEND_ORIGIN}/{chess_board_result['url']}"
-
-    return chess_board_result
-
-
-llm = llm.bind_tools(
-    [
-        create_chess_board_image_tool,
-    ]
-)
-tools = {"create_chess_board_image_tool": create_chess_board_image_tool}
 
 
 @app.route("/login", methods=["POST"])
@@ -292,7 +244,6 @@ def rank_node(state: RAGState):
 
 
 def build_prompt_node(state: RAGState):
-    role = state["role"]
     chunks = state["retrieved_chunks"]
     documents =  [chunk["chunk_text"] for chunk in chunks]
     images = [chunk["images"] for chunk in chunks]
@@ -302,8 +253,6 @@ def build_prompt_node(state: RAGState):
         documents,
         urls,
         images,
-        role,
-        handle_images_mcp,
     )
     
     conversation_for_generation = [
@@ -346,8 +295,6 @@ def judge_context_node(state: RAGState):
 
 
 def rewrite_query_node(state: RAGState):
-    user_id = state.get("user_id")
-
     result = rewrite_query(
         state["query"], 
         state["retrieved_chunks"], 
@@ -370,6 +317,8 @@ def generate_node(state: RAGState):
     raw_messages = state["conversation_for_generation"]
     stream = state.get("stream", False)
     user_id = state.get("user_id")
+    allowed_tool_names = state.get("tools")
+    allowed_tool_function_mapping = {tool_name: all_tools[tool_name] for tool_name in allowed_tool_names}
 
     if not raw_messages:
         return jsonify({
@@ -381,13 +330,23 @@ def generate_node(state: RAGState):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     if stream:
-        answer_stream = stream_response(llm, messages, user_id=user_id, tools=tools)
+        answer_stream = stream_response(
+            llm, 
+            messages, 
+            user_id=user_id, 
+            tool_mapping=allowed_tool_function_mapping
+        )
 
         return {
             "answer": None,
             "answer_stream": answer_stream
         }
-    result, _ = generate_and_trace(llm, messages, user_id=user_id, tools=tools)
+    result, _ = generate_and_trace(
+        llm, 
+        messages, 
+        user_id=user_id, 
+        tool_mapping=allowed_tool_function_mapping,
+    )
 
     return {
         "answer": result,
@@ -397,6 +356,7 @@ def generate_node(state: RAGState):
 
 rag_graph = build_graph(
     filter_node,
+    define_mcp_settings,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -434,23 +394,7 @@ def answer_query_and_trace(messages: list[str], user_id: str, role="user", strea
     })
 
     if stream:
-        additional_information = {
-            "system_prompt": system_prompt,
-            "query": result["query"],
-            "query_history": result.get("query_history", [result["query"]]),
-            "iterations": result.get("iteration", 0),
-            "role": result["role"],
-            "retrieval_information": [
-                {
-                    "chunk_text": chunk["chunk_text"],
-                    "lexical_score": chunk["lexical_score"],
-                    "semantic_score": chunk["semantic_score"],
-                }
-                for chunk in result.get("retrieved_chunks", []) 
-            ],
-            "is_inappropriate": result["is_inappropriate"],
-            "user_id": user_id,
-        }
+        additional_information = get_additional_information(result, system_prompt)
         result["answer_stream"] = generate_chunks(
             result["answer_stream"], 
             additional_information,
@@ -497,8 +441,6 @@ def get_image(filename):
     # Prevent directory traversal attacks
     if not requested_path.startswith(safe_path):
         abort(403)
-
-    print(requested_path)
 
     if not os.path.exists(requested_path):
         abort(404)

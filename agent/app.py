@@ -9,7 +9,7 @@ from flask import (
 )
 from langchain_openai import ChatOpenAI
 
-from tools import create_chess_board_image_tool
+from mcp_adapters.chessboard_renderer import all_tools
 from constants import HOST, PORT, DEBUG, TOOLS_IMAGES_DIR
 from agent_handler import (
     build_messages,
@@ -21,18 +21,11 @@ import os
 
 
 app = Flask(__name__)
-
 llm = ChatOpenAI(
     model="gpt-4.1-mini",
     temperature=0,
     streaming=True,
-).bind_tools(
-    [
-        create_chess_board_image_tool,
-    ]
 )
-
-tools = {"create_chess_board_image_tool": create_chess_board_image_tool}
 
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -42,6 +35,8 @@ def generate():
     stream = body.get("stream", False)
     tracing_headers = body.get("tracing_headers", {})
     user_id = body.get("user_id", "default")
+    selected_tools = body.get("tools")
+    selected_tool_mapping = {tool_name: all_tools[tool_name] for tool_name in selected_tools}
 
     if not raw_messages:
         return jsonify({
@@ -54,16 +49,24 @@ def generate():
         return jsonify({"error": str(exc)}), 400
     if stream:
         return Response(
-            stream_with_context(stream_response(
-                llm, 
-                messages, 
-                tools=tools,
-                user_id=user_id,
-                langsmith_extra={"parent": tracing_headers}
-            )),
+            stream_with_context(
+                stream_response(
+                    llm, 
+                    messages, 
+                    tool_mapping=selected_tool_mapping,
+                    user_id=user_id,
+                    langsmith_extra={"parent": tracing_headers}
+                )
+            ),
             mimetype="text/event-stream",
         )
-    result, status_code = generate_and_trace(llm, messages, user_id=user_id, tools=tools)
+    
+    result, status_code = generate_and_trace(
+        llm, 
+        messages, 
+        user_id=user_id, 
+        tool_mapping=selected_tool_mapping
+    )
 
     return jsonify(result), status_code
 

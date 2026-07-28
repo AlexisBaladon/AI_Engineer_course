@@ -4,7 +4,6 @@ from prompts_handler import (
     fill_user_prompt,
     system_prompt,
 )
-from mcp_adapters.image_mcp import handle_images_mcp
 from observability.langsmith_tracing import get_tracing_headers
 from constants import (
     FILTER_HOST,
@@ -201,7 +200,6 @@ def rewrite_query_node(state: RAGState):
 
 
 def build_prompt_node(state: RAGState):
-    role = state["role"]
     chunks = state["retrieved_chunks"]
     documents = [chunk["chunk_text"] for chunk in chunks]
     images = [chunk["images"] for chunk in chunks]
@@ -212,8 +210,6 @@ def build_prompt_node(state: RAGState):
         documents,
         urls,
         images,
-        role,
-        handle_images_mcp,
     )
 
     conversation_for_generation = [
@@ -242,12 +238,14 @@ def build_prompt_node(state: RAGState):
 def generate_node(state: RAGState):
     tracing_headers = get_tracing_headers()
     user_id = state.get("user_id")
+    allowed_tools = state.get("tools")
 
     payload = {
         "messages": state["conversation_for_generation"],
         "stream": state.get("stream", False),
         "tracing_headers": tracing_headers,
         "user_id": user_id,
+        "tools": allowed_tools,
     }
 
     if state.get("stream"):
@@ -255,7 +253,7 @@ def generate_node(state: RAGState):
             f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
             json=payload,
             stream=True,
-            timeout=60,
+            timeout=120,
         )
 
         response.raise_for_status()
@@ -267,7 +265,7 @@ def generate_node(state: RAGState):
     response = requests.post(
         f"http://{GENERATION_HOST}:{GENERATION_PORT}/generate",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
 
     response.raise_for_status()

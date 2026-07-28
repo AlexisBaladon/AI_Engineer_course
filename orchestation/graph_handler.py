@@ -27,6 +27,9 @@ class RAGState(TypedDict):
     # Authentication
     role: str
 
+    # MCP tools
+    tools: list[str]
+
     # Iterative retrieval
     query_history: list[str]
     iteration: int
@@ -49,7 +52,7 @@ def route_filtered_queries(state: RAGState):
     if state["is_inappropriate"]:
         return "end"
 
-    return "retrieve"
+    return "define_mcp_settings"
 
 
 def route_after_judge(state: RAGState):
@@ -69,6 +72,7 @@ def route_after_judge(state: RAGState):
 
 def build_graph(
     filter_node,
+    define_mcp_settings,
     retrieve_node,
     rank_node,
     judge_context_node,
@@ -81,6 +85,11 @@ def build_graph(
     graph_builder.add_node(
         "filter",
         filter_node,
+    )
+
+    graph_builder.add_node(
+        "define_mcp_settings",
+        define_mcp_settings,
     )
 
     graph_builder.add_node(
@@ -122,9 +131,14 @@ def build_graph(
         "filter",
         route_filtered_queries,
         {
-            "retrieve": "retrieve",
+            "define_mcp_settings": "define_mcp_settings",
             "end": END,
         },
+    )
+
+    graph_builder.add_edge(
+        "define_mcp_settings",
+        "retrieve",
     )
 
     graph_builder.add_edge(
