@@ -118,7 +118,7 @@ For the backend:
 pip install -r requirements.txt
 ```
 
-Note: This method inicializes a monolithic Python application, importing the methods of the application instead of making API calls. This is used for less expensive deployments, such as on AWS. It is also possible to run each microservice independently, but this requires more resources and is more costly.
+Note: This method inicializes a monolithic Python application, importing the methods of the application instead of making API calls. This is used for less expensive deployments, such as on AWS. It is also possible to run each microservice independently, but this requires more resources and is more costly:
 
 ```
 cd <MICROSERVICE_FOLDER>
@@ -134,7 +134,7 @@ npm install
 
 ### 2. Run the application
 
-Para correr el backend en un solo servidor:
+To run the backend in a single server:
 ```
 python app.py
 ```
