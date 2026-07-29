@@ -71,7 +71,10 @@ def generate():
     return jsonify(result), status_code
 
 
-# Used for agent tool image creation.
+"""
+TODO: Divide responsibilities of the agent and the tool that stores images, 
+and create a new microservice or module for image generation/storage.
+"""
 @app.route("/image/<path:filename>", methods=["GET"])
 def get_image(filename):
     """
