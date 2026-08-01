@@ -46,7 +46,15 @@ def load_chunks(csv_file: str, images_file: str):
         reader = csv.DictReader(f)
 
         for row in reader:
-            images_by_url[row["page_url"]].append(row["image_url"])
+            image_alt = row.get("alt", None)
+            image_alt = image_alt if image_alt else None
+
+            images_by_url[row["page_url"]].append(
+                {
+                    "image_url": row["image_url"],
+                    "description": image_alt,
+                }
+            ) 
 
     chunks = []
 

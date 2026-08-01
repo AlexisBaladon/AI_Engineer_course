@@ -25,18 +25,24 @@ Documents:
 system_prompt = system_prompt.format(expertise_area=EXPERTISE_AREA)
 
 
-def _handle_images(image_urls: list[str]):
+def _handle_images(image_information: list[dict]):
     """
     This is one of the features only available for logged users,
     which consists in showing image urls to the model prompt.
     """
     image_block = ""
 
-    if len(image_urls) > 0:
-        image_block = "\n".join(
-            f"- {image_url}"
-            for image_url in image_urls
-        )
+    if len(image_information) > 0:
+        formatted_image_information = []
+        for image_details in image_information:
+            image_description = image_details.get("description", None)
+            if image_description:
+                formatted_image_data = f"- {image_details['description']}: {image_details['image_url']}"
+            else:
+                formatted_image_data = f"- {image_details['image_url']}"
+            formatted_image_information.append(formatted_image_data)
+
+        image_block = "\n".join(formatted_image_information)
 
         image_block = (
             "\n\n"
