@@ -44,11 +44,13 @@ body {
 .app {
   min-height: 100vh;
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-    position: relative;
+  padding: 24px;
+
+  position: relative;
 }
 
 .chat-container {
@@ -537,4 +539,51 @@ body {
 
     box-shadow:
         0 16px 40px rgba(0,0,0,0.35);
+}
+
+
+@media (max-width: 1200px) {
+
+    .app {
+        padding: 72px 12px 12px;
+        align-items: stretch;
+    }
+
+    .chat-container {
+        height: calc(100vh - 84px);
+        max-width: 100%;
+        border-radius: 14px;
+    }
+
+    .top-bar {
+        position: absolute;
+
+        top: 12px;
+        right: 12px;
+        left: 12px;
+
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .login-button,
+    .user-chip {
+        transform: scale(0.80);
+    }
+
+    .bubble {
+        max-width: 88%;
+    }
+
+    .messages {
+        padding: 14px;
+    }
+
+    .input-container {
+        padding: 10px;
+    }
+
+    .input {
+        font-size: 16px;
+    }
 }
