@@ -1,8 +1,12 @@
 import requests
 
-from prompts_handler import (
+from conversation_handler import (
     fill_user_prompt,
     system_prompt,
+    format_user_messages_for_filtering,
+    get_all_user_messages,
+    get_last_user_message,
+    DEFAULT_INAPPROPRIATE_RESPONSE
 )
 from observability.langsmith_tracing import get_tracing_headers
 from constants import (
@@ -25,19 +29,6 @@ from graph_handler import (
     RAGState,
 )
 
-DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
-
-
-def _get_last_message(user_conversation: list[dict]):
-    return next(
-        (
-            message["content"]
-            for message in reversed(user_conversation)
-            if message["role"] == "user"
-        ),
-        None,
-    )
-
 
 class StaticResponseStream:
     def __init__(self, response: str):
@@ -56,10 +47,13 @@ def filter_node(state: RAGState):
     user_id = state.get("user_id")
 
     if query is None:
-        query = _get_last_message(state["user_conversation"])
+        query = get_last_user_message(state["user_conversation"])
 
+    all_user_messages = get_all_user_messages(state["user_conversation"])
+    formatted_user_messages = format_user_messages_for_filtering(all_user_messages)
+    
     payload = {
-        "query": query,
+        "query": formatted_user_messages,
         "tracing_headers": tracing_headers,
         "user_id": user_id,
     }

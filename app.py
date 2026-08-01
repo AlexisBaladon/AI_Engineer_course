@@ -37,9 +37,13 @@ from orchestation.observability.langsmith_tracing import (
     decode_stream, 
     get_current_run_tree
 )
-from orchestation.prompts_handler import (
+from orchestation.conversation_handler import (
     fill_user_prompt,
     system_prompt,
+    format_user_messages_for_filtering,
+    get_all_user_messages,
+    get_last_user_message,
+    DEFAULT_INAPPROPRIATE_RESPONSE
 )
 from mcp_adapters.chessboard_renderer import all_tools
 from orchestation.utils import get_additional_information
@@ -70,8 +74,10 @@ from agent.agent_handler import (
     generate_and_trace,
     stream_response,
 )
+
 import json
 import os
+
 
 app = Flask(__name__)
 
@@ -163,17 +169,6 @@ def auth_status():
     }), 200
 
 
-def _get_last_message(user_conversation: list[dict]):
-    return next(
-        (
-            message["content"]
-            for message in reversed(user_conversation)
-            if message["role"] == "user"
-        ),
-        None,
-    )
-
-
 class StaticResponseStream:
     def __init__(self, response: str):
         self.response = response
@@ -187,9 +182,12 @@ def filter_node(state: RAGState):
     query = state.get("query")
 
     if query is None:
-        query = _get_last_message(state["user_conversation"])
+        query = get_last_user_message(state["user_conversation"])
 
-    filtered_query = filter_query(query, query_filter)
+    user_messages = get_all_user_messages(state["user_conversation"])
+    formatted_user_messages = format_user_messages_for_filtering(user_messages)
+
+    filtered_query = filter_query(formatted_user_messages, query_filter)
     is_inappropriate = filtered_query["is_inappropriate"]
 
     extra_results = {} 

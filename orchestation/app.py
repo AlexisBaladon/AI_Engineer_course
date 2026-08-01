@@ -18,7 +18,7 @@ from constants import (
     HOOK_HOST,
     HOOK_PORT,
 )
-from prompts_handler import (
+from conversation_handler import (
     system_prompt,
 )
 from graph_handler import (
