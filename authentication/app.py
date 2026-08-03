@@ -41,7 +41,7 @@ def login():
             "auth_token",
             token,
             httponly=True, # HttpOnly cookie prevents JS access (important security)
-            secure=False,  # TODO: set True in HTTPS production
+            secure=not DEBUG,  # TODO: set True in HTTPS production
             samesite="Lax",
         )
 
