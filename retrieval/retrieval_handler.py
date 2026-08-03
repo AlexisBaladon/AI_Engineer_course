@@ -2,6 +2,7 @@ import csv
 import json
 from collections import defaultdict
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from rank_bm25 import BM25Okapi
 from langchain_openai import OpenAIEmbeddings
@@ -101,26 +102,35 @@ def build_faiss_index(chunks):
     return index
 
 
-@traceable(run_type="llm", name="Hybrid search")
-def search(
+def _lexical_search(
     query: str,
     bm25: BM25Okapi,
-    faiss_index: faiss.IndexFlatIP,
-    embeddings: OpenAIEmbeddings,
-    chunks: list[dict],
-    top_k: int = 10,
-    semantic_weight: float = 0.75,
-    user_id=None,
 ):
-    # ---------- Lexical retrieval ----------
     tokenized_query = tokenize_and_clean(query)
 
-    bm25_scores = np.asarray(
+    scores = np.asarray(
         bm25.get_scores(tokenized_query),
         dtype=np.float32,
     )
 
-    # ---------- Semantic retrieval ----------
+    score_min = scores.min()
+    score_max = scores.max()
+
+    if score_max > score_min:
+        scores = (scores - score_min) / (score_max - score_min)
+    else:
+        scores = np.zeros_like(scores)
+
+    return scores
+
+
+def _semantic_search(
+    query: str,
+    user_id: str,
+    embeddings: OpenAIEmbeddings,
+    faiss_index: faiss.IndexFlatIP,
+    k: int,
+):
     query_embedding = embeddings.embed_query(
         query,
         user=user_id,
@@ -135,42 +145,70 @@ def search(
 
     semantic_scores, semantic_indices = faiss_index.search(
         query_embedding,
-        min(len(chunks), top_k * 5),
+        k,
     )
 
-    # ---------- Normalize BM25 ----------
-    bm25_min = bm25_scores.min()
-    bm25_max = bm25_scores.max()
-
-    if bm25_max > bm25_min:
-        bm25_scores = (
-            bm25_scores - bm25_min
-        ) / (
-            bm25_max - bm25_min
-        )
-    else:
-        bm25_scores = np.zeros_like(bm25_scores)
-
-    # ---------- Normalize semantic scores ----------
     semantic_score_dict = {}
 
-    if len(semantic_scores[0]) > 0:
-        scores = np.asarray(
-            semantic_scores[0],
-            dtype=np.float32,
+    if len(semantic_scores[0]) == 0:
+        return semantic_score_dict
+
+    scores = np.asarray(
+        semantic_scores[0],
+        dtype=np.float32,
+    )
+
+    score_min = scores.min()
+    score_max = scores.max()
+
+    if score_max > score_min:
+        scores = (
+            scores - score_min
+        ) / (
+            score_max - score_min
+        )
+    else:
+        scores = np.ones_like(scores)
+
+    for score, idx in zip(scores, semantic_indices[0]):
+        if idx != -1:
+            semantic_score_dict[idx] = float(score)
+
+    return semantic_score_dict
+
+
+@traceable(run_type="llm", name="Hybrid search")
+def search(
+    query: str,
+    bm25: BM25Okapi,
+    faiss_index: faiss.IndexFlatIP,
+    embeddings: OpenAIEmbeddings,
+    chunks: list[dict],
+    top_k: int = 10,
+    semantic_weight: float = 0.75,
+    user_id=None,
+):
+    k = min(len(chunks), top_k * 5)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+
+        lexical_future = executor.submit(
+            _lexical_search,
+            query,
+            bm25,
         )
 
-        s_min = scores.min()
-        s_max = scores.max()
+        semantic_future = executor.submit(
+            _semantic_search,
+            query,
+            user_id,
+            embeddings,
+            faiss_index,
+            k,
+        )
 
-        if s_max > s_min:
-            scores = (scores - s_min) / (s_max - s_min)
-        else:
-            scores = np.ones_like(scores)
-
-        for score, index in zip(scores, semantic_indices[0]):
-            if index != -1:
-                semantic_score_dict[index] = float(score)
+        bm25_scores = lexical_future.result()
+        semantic_score_dict = semantic_future.result()
 
     # ---------- Weighted hybrid score ----------
     hybrid_results = []
@@ -200,7 +238,5 @@ def search(
         key=lambda x: x["hybrid_score"],
         reverse=True,
     )
-
-
 
     return hybrid_results[:top_k]
