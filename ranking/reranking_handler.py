@@ -1,8 +1,8 @@
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
-from langsmith import traceable
-
 import json
+
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+from langsmith import traceable
 
 
 RERANKING_PROMPT = """
@@ -20,7 +20,48 @@ Example:
 [3, 1, 0, 2]
 """
 
-@traceable(type="llm", name="Rerank documents")
+
+def _safe_parse_ranking(content: str, n_documents: int) -> list[int]:
+    """
+    Parses and sanitizes the ranking returned by the LLM.
+
+    Guarantees:
+    - Only integers are kept.
+    - Out-of-range indices are discarded.
+    - Duplicates are removed.
+    - Missing indices are appended at the end.
+    """
+
+    try:
+        ranking = json.loads(content)
+    except json.JSONDecodeError:
+        return list(range(n_documents))
+
+    if not isinstance(ranking, list):
+        return list(range(n_documents))
+
+    cleaned = []
+    seen = set()
+
+    for item in ranking:
+        try:
+            idx = int(item)
+        except (TypeError, ValueError):
+            continue
+
+        if 0 <= idx < n_documents and idx not in seen:
+            cleaned.append(idx)
+            seen.add(idx)
+
+    # Append missing documents preserving their original order
+    for idx in range(n_documents):
+        if idx not in seen:
+            cleaned.append(idx)
+
+    return cleaned
+
+
+@traceable(run_type="llm", name="Rerank documents")
 def rerank_chunks(
     query: str,
     chunks: list[dict],
@@ -28,17 +69,31 @@ def rerank_chunks(
     llm: ChatOpenAI,
     reranking_prompt=RERANKING_PROMPT,
 ):
-    docs = []
+    if not chunks:
+        return []
 
-    for i, chunk in enumerate(chunks):
-        docs.append(f"[{i}]\n{chunk['chunk_text']}")
+    docs = [
+        f"[{i}]\n{chunk['chunk_text']}"
+        for i, chunk in enumerate(chunks)
+    ]
 
-    prompt = reranking_prompt.format(query=query, documents="\n".join(docs))
-    response = llm.bind(user=user_id).invoke(
-        [
-            HumanMessage(content=prompt)
-        ]
+    prompt = reranking_prompt.format(
+        query=query,
+        documents="\n".join(docs),
     )
-    ranking = json.loads(response.content)
+
+    try:
+        response = llm.bind(user=user_id).invoke(
+            [HumanMessage(content=prompt)]
+        )
+
+        ranking = _safe_parse_ranking(
+            response.content,
+            len(chunks),
+        )
+
+    except Exception:
+        # If the LLM call itself fails, preserve the retrieval order.
+        ranking = list(range(len(chunks)))
 
     return [chunks[i] for i in ranking]
