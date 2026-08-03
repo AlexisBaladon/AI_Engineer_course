@@ -225,6 +225,7 @@ def retrieve_node(state: RAGState):
 
 def rank_node(state: RAGState):
     top_k = 3
+
     user_id = state.get("user_id")
 
     reranked_results = rerank_chunks(

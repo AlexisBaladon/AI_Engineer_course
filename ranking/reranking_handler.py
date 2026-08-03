@@ -1,9 +1,11 @@
-import json
-
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langsmith import traceable
 
+import json
+
+
+RERANK_CACHE = {}
 
 RERANKING_PROMPT = """
 Query:
@@ -78,22 +80,28 @@ def rerank_chunks(
     ]
 
     prompt = reranking_prompt.format(
-        query=query,
-        documents="\n".join(docs),
-    )
+    query=query,
+    documents="\n".join(docs),
+)
 
-    try:
-        response = llm.bind(user=user_id).invoke(
-            [HumanMessage(content=prompt)]
-        )
+    cache_key = prompt
 
-        ranking = _safe_parse_ranking(
-            response.content,
-            len(chunks),
-        )
+    ranking = RERANK_CACHE.get(cache_key)
 
-    except Exception:
-        # If the LLM call itself fails, preserve the retrieval order.
-        ranking = list(range(len(chunks)))
+    if ranking is None:
+        try:
+            response = llm.bind(user=user_id).invoke(
+                [HumanMessage(content=prompt)]
+            )
+
+            ranking = _safe_parse_ranking(
+                response.content,
+                len(chunks),
+            )
+
+        except Exception:
+            ranking = list(range(len(chunks)))
+
+        RERANK_CACHE[cache_key] = ranking
 
     return [chunks[i] for i in ranking]

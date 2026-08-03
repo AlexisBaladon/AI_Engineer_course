@@ -15,6 +15,9 @@ SPANISH_STOPWORDS = {
     "a", "acá", "ahí", "al", "algo", "algún", "alguna", "algunas", "alguno", "algunos", "allá", "allí", "ambos", "ante", "antes", "aquel", "aquella", "aquellas", "aquello", "aquellos", "aquí", "arriba", "así", "atrás", "aun", "aunque",     "bajo", "bastante", "bien", "cada", "casi", "como", "con", "contra", "cual", "cuales", "cualquier", "cualquiera", "cuando", "cuanto", "cuánto", "cuanta", "cuántas", "cuantos", "cuántos","de", "debajo", "del", "desde", "demás", "demasiado", "dentro", "después", "donde", "dos", "durante","e", "el", "él", "ella", "ellas", "ello", "ellos", "en", "encima", "entre", "era", "eran", "eres", "es", "esa", "esas", "ese", "eso", "esos", "esta", "está", "estaba", "estaban", "estado", "estáis", "estamos", "están", "estar", "estas", "este", "esto", "estos", "estoy","fue", "fueron", "fui", "fuimos","ha", "había", "habían", "haber", "habrá", "habrán", "hace", "hacen", "hacer", "hacia", "han", "hasta", "hay", "he", "hemos", "hubo","incluso","jamás","la", "las", "le", "les", "lo", "los", "más", "me", "menos", "mi", "mis", "mientras", "mío", "mía", "míos", "mías", "muy","nada", "nadie", "ni", "ningún", "ninguna", "ninguno", "ningunos", "no", "nos", "nosotras", "nosotros", "nuestra", "nuestras", "nuestro", "nuestros", "nunca","o", "os", "otra", "otras", "otro", "otros","para", "pero", "poco", "por", "porque", "primero", "puede", "pueden", "puedo", "pues","que", "qué", "quien", "quién", "quienes", "quiénes","se", "sea", "sean", "según", "ser", "si", "sí", "siempre", "siendo", "sin", "sobre", "sois", "solamente", "solo", "somos", "soy", "su", "sus","tal", "también", "tampoco", "tan", "te", "tenemos", "tener", "tengo", "ti", "tiene", "tienen", "toda", "todas", "todavía", "todo", "todos", "tras", "tú", "tu", "tus","un", "una", "unas", "uno", "unos", "usted", "ustedes","va", "vamos", "van", "varias", "varios", "veces","y", "ya","yo"
 }
 
+LEXICAL_CACHE = {}
+SEMANTIC_CACHE = {}
+
 
 def tokenize_and_clean(text: str) -> list[str]:
     # Split camelCase / PascalCase
@@ -190,30 +193,47 @@ def search(
 ):
     k = min(len(chunks), top_k * 5)
 
+    lexical_key = query
+    semantic_key = (query, k)
+
     with ThreadPoolExecutor(max_workers=2) as executor:
 
-        lexical_future = executor.submit(
-            _lexical_search,
-            query,
-            bm25,
-        )
+        # ---------- Lexical ----------
+        if lexical_key in LEXICAL_CACHE:
+            lexical_future = None
+            bm25_scores = LEXICAL_CACHE[lexical_key]
+        else:
+            lexical_future = executor.submit(
+                _lexical_search,
+                query,
+                bm25,
+            )
 
-        semantic_future = executor.submit(
-            _semantic_search,
-            query,
-            user_id,
-            embeddings,
-            faiss_index,
-            k,
-        )
+        # ---------- Semantic ----------
+        if semantic_key in SEMANTIC_CACHE:
+            semantic_future = None
+            semantic_score_dict = SEMANTIC_CACHE[semantic_key]
+        else:
+            semantic_future = executor.submit(
+                _semantic_search,
+                query,
+                user_id,
+                embeddings,
+                faiss_index,
+                k,
+            )
 
-        bm25_scores = lexical_future.result()
-        semantic_score_dict = semantic_future.result()
+        if lexical_future is not None:
+            bm25_scores = lexical_future.result()
+            LEXICAL_CACHE[lexical_key] = bm25_scores
 
-    # ---------- Weighted hybrid score ----------
-    hybrid_results = []
+        if semantic_future is not None:
+            semantic_score_dict = semantic_future.result()
+            SEMANTIC_CACHE[semantic_key] = semantic_score_dict
 
     lexical_weight = 1.0 - semantic_weight
+
+    hybrid_results = []
 
     for idx, chunk in enumerate(chunks):
 

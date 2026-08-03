@@ -3,6 +3,9 @@ from langchain_core.runnables import Runnable
 from langsmith import traceable
 
 
+QUERY_FILTER_CACHE = {}
+
+
 class QueryFilter(Runnable[str, dict]):
     """
     LangChain Runnable wrapper around the OpenAI Moderation API.
@@ -33,4 +36,14 @@ class QueryFilter(Runnable[str, dict]):
 
 @traceable(type="llm", name="Query filter")
 def filter_query(query: str, llm: Runnable):
-    return llm.invoke(query)
+    cache_key = query
+    cached = QUERY_FILTER_CACHE.get(cache_key)
+
+    if cached is not None:
+        return cached
+
+    result = llm.invoke(query)
+
+    QUERY_FILTER_CACHE[cache_key] = result
+
+    return result

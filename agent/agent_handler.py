@@ -7,6 +7,10 @@ from langchain_core.messages import (
 )
 from langsmith import traceable
 
+
+STREAM_CACHE = {}
+
+
 def build_messages(raw_messages):
     messages = []
 
@@ -71,11 +75,39 @@ def generate_and_trace(llm, messages, user_id="default", tool_mapping={}):
 
 
 @traceable(type="llm", name="Agent")
-def stream_response(llm, messages, user_id="default", tool_mapping=None, max_turns=10):
+def stream_response(
+    llm,
+    messages,
+    user_id="default",
+    tool_mapping=None,
+    max_turns=10,
+):
     """
     Streams the response from the LLM while supporting tool calling.
+    Cached responses are replayed without calling the LLM again.
     """
     tool_mapping = tool_mapping or {}
+
+    # Don't cache when tools are available, since tool outputs may change.
+    use_cache = len(tool_mapping) == 0
+
+    cache_key = None
+    streamed_events = []
+
+    if use_cache:
+        cache_key = json.dumps(
+            [message.model_dump() for message in messages],
+            sort_keys=True,
+            default=str,
+        )
+
+        cached = STREAM_CACHE.get(cache_key)
+
+        if cached is not None:
+            for event in cached:
+                yield event
+            return
+
     conversation = list(messages)
 
     if tool_mapping:
@@ -86,53 +118,65 @@ def stream_response(llm, messages, user_id="default", tool_mapping=None, max_tur
 
     while True:
         turns += 1
+
         if turns > max_turns:
-            yield (
+            payload = (
                 f"data: "
                 f"{json.dumps({'error': 'Max tool-calling turns exceeded.'})}"
                 f"\n\n"
             )
+
+            if use_cache:
+                streamed_events.append(payload)
+
+            yield payload
             break
 
         assistant_message = None
 
-        # Stream one assistant turn
         try:
             for chunk in llm.stream(conversation):
-                # Merge chunks together so tool_calls are reconstructed correctly
+
                 if assistant_message is None:
                     assistant_message = chunk
                 else:
                     assistant_message += chunk
 
-                # Stream text immediately to the frontend
                 if chunk.content:
-                    yield (
+                    payload = (
                         f"data: "
                         f"{json.dumps({'token': chunk.content})}"
                         f"\n\n"
                     )
+
+                    if use_cache:
+                        streamed_events.append(payload)
+
+                    yield payload
+
         except Exception as e:
-            yield (
+            payload = (
                 f"data: "
                 f"{json.dumps({'error': f'LLM streaming failed: {e}'})}"
                 f"\n\n"
             )
+
+            if use_cache:
+                streamed_events.append(payload)
+
+            yield payload
             break
 
-        # Nothing generated
         if assistant_message is None:
             break
 
-        # Save assistant message into conversation
         conversation.append(assistant_message)
 
-        # No tool requested -> we're done
         if not assistant_message.tool_calls:
             break
 
-        # Execute every requested tool
         for tool_call in assistant_message.tool_calls:
+
             tool_name = tool_call["name"]
             tool = tool_mapping.get(tool_name)
 
@@ -146,9 +190,8 @@ def stream_response(llm, messages, user_id="default", tool_mapping=None, max_tur
                 continue
 
             try:
-                # Pass the full tool_call so BaseTool.invoke returns a
-                # correctly-formed ToolMessage (handles content_and_artifact, etc.)
                 tool_message = tool.invoke(tool_call)
+
             except Exception as e:
                 tool_message = ToolMessage(
                     tool_call_id=tool_call["id"],
@@ -157,4 +200,10 @@ def stream_response(llm, messages, user_id="default", tool_mapping=None, max_tur
 
             conversation.append(tool_message)
 
-    yield "data: [DONE]\n\n"
+    done_payload = "data: [DONE]\n\n"
+
+    if use_cache:
+        streamed_events.append(done_payload)
+        STREAM_CACHE[cache_key] = streamed_events
+
+    yield done_payload
