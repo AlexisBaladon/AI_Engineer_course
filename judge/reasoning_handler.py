@@ -8,6 +8,20 @@ from langsmith import traceable
 import json
 
 
+LLM_CACHE = {}
+
+
+def _cache_key(messages: list, llm: ChatOpenAI) -> str:
+    return json.dumps(
+        {
+            "model": llm.model_name,
+            "messages": [m.model_dump() for m in messages],
+        },
+        sort_keys=True,
+        default=str,
+    )
+
+
 def _build_context(chunks: list[dict]) -> str:
     return "\n\n".join(
         f"Document {i + 1}:\n{chunk['chunk_text']}"
@@ -22,6 +36,7 @@ def judge_context(
     user_id="default",
 ):
     context = _build_context(chunks)
+
     messages = [
         SystemMessage(
             content=(
@@ -41,9 +56,20 @@ def judge_context(
             )
         ),
     ]
+
+    key = _cache_key(messages, llm)
+
+    cached = LLM_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     response = llm.bind(user=user_id).invoke(messages)
 
-    return json.loads(response.content)
+    result = json.loads(response.content)
+
+    LLM_CACHE[key] = result
+
+    return result
 
 
 @traceable(type="llm", name="Rewrite query")
@@ -54,6 +80,7 @@ def rewrite_query(
     user_id="default",
 ):
     context = _build_context(chunks)
+
     messages = [
         SystemMessage(
             content=(
@@ -76,6 +103,17 @@ def rewrite_query(
             )
         ),
     ]
+
+    key = _cache_key(messages, llm)
+
+    cached = LLM_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     response = llm.bind(user=user_id).invoke(messages)
 
-    return response.content
+    result = response.content
+
+    LLM_CACHE[key] = result
+
+    return result
