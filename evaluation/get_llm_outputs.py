@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime, timezone
 
 
-MAIN_CHAIN_URL = "http://localhost:1232/run_chain"
+MAIN_CHAIN_URL = "http://localhost:1235/chat"
 
 INPUT_CSV = "test_dataset.csv"
 OUTPUT_JSON = "llm_outputs.json"
@@ -103,9 +103,6 @@ def main():
         for row in reader:
             idx += 1
 
-            if idx > 1:
-                continue
-
             question = row["pregunta"]
             print(f"Asking: {question}")
             run = ask_llm(question)
@@ -123,13 +120,13 @@ def main():
 
             results.append(result)
 
-    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(
-            results,
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
+            with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+                json.dump(
+                    results,
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
 
     print(f"Saved {len(results)} runs.")
 

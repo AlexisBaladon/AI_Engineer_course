@@ -8,13 +8,13 @@
 
 | Property | Value |
 |-----------|------:|
-| Date | 2026-07-13T21:09:35.956388+00:00 |
-| Git Commit | `38b9eea1d18f070dd2673219fac25e3257885714` |
+| Date | 2026-08-04T19:55:39.473948+00:00 |
+| Git Commit | `79d0a9ea6912e5a918fc7b80c7f6dfc3f1ecb0ff` |
 | Embedding Model | text-embedding-3-large |
 | Retrieval Method | Hybrid Search |
 | Re-ranking Model | gpt-4.1-mini |
 | LLM | gpt-4.1-mini |
-| Number of Questions | 1 |
+| Number of Questions | 100 |
 
 ---
 
@@ -22,9 +22,9 @@
 
 | Metric | Value |
 |---------|------:|
-| Average Time to First Token | **14.08 s** |
+| Average Time to First Token | **6.26 s** |
 | Average Faithfulness | **1.000** |
-| Precision@k | **1.000** |
+| Precision@k | **0.730** |
 
 ---
 
@@ -32,7 +32,7 @@
 
 | Label | Count |
 |--------|------:|
-| faithful | 1 |
+    | faithful | 100 |
 
 
 ---
@@ -41,22 +41,23 @@
 
 | Metric | Seconds |
 |---------|--------:|
-| Fastest TTFT | 14.08 |
-| Slowest TTFT | 14.08 |
+    | Fastest TTFT | 4.53 |
+| Slowest TTFT | 22.21 |
 
 
 ---
 
 # 📈 Executive Summary
 
-This benchmark evaluated **1** user questions against the
+This benchmark evaluated **100** user questions against the
 latest version of the Nau64 RAG system.
 
 ## Highlights
 
-- Average Time to First Token: **14.08 seconds**
+- Average Time to First Token: **6.26 seconds**
 - Average Faithfulness: **1.000**
-- Average Precision@k: **1.000**
+- Average Precision@k: **0.730**
 
-The benchmark was generated automatically from commit `38b9eea1d18f070dd2673219fac25e3257885714` on
-2026-07-13T21:09:35.956388+00:00.
+The benchmark was generated automatically from commit `79d0a9ea6912e5a918fc7b80c7f6dfc3f1ecb0ff` on
+2026-08-04T19:55:39.473948+00:00.
+    
