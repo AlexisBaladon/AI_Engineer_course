@@ -33,27 +33,28 @@ export default function App() {
   const inputRef = useRef(null);
   
   const [showLogin, setShowLogin] = useState(false);  
-  const [conversations, setConversations] = useState(() => {
-    const saved = localStorage.getItem(GUEST_CONVERSATIONS_KEY);
-
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-
-    return {
-      id: crypto.randomUUID(),
-      title: "Nueva conversación",
-      messages: [],
-    };
-  });
-
   const [currentConversationId, setCurrentConversationId] = useState(0);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [conversations, setConversations] = useState(() => {
+    if (!user) {
+      const saved = localStorage.getItem(GUEST_CONVERSATIONS_KEY);
+
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+
+    return [{
+      id: crypto.randomUUID(),
+      title: "Nueva conversación",
+      messages: [],
+    }];
+  });
 
   function createConversation() {
     const conversation = {
@@ -76,11 +77,11 @@ export default function App() {
 
       if (saved) {
         try {
-          const conversations = JSON.parse(saved);
+          const saved_conversations = JSON.parse(saved);
 
-          if (conversations.length > 0) {
-            setConversations(conversations);
-            setCurrentConversationId(conversations[0].id);
+          if (saved_conversations.length > 0) {
+            setConversations(saved_conversations);
+            setCurrentConversationId(saved_conversations[0].id);
             return;
           }
         } catch (err) {
@@ -349,10 +350,11 @@ export default function App() {
 
   
   
-  const currentConversation =
+  const currentConversation = 
+    conversations ?
     conversations.find(
       c => c.id === currentConversationId
-    ) ?? conversations[0];
+    ) : conversations[0];
 
   const messages = currentConversation ? currentConversation.messages : [];
 
