@@ -23,5 +23,10 @@ def decode_stream(tokens: list[str]):
 
 def get_tracing_headers():
     tracing_tree = get_current_run_tree()
-    tracing_headers = tracing_tree.to_headers()
+
+    try:
+        tracing_headers = tracing_tree.to_headers()
+    except AttributeError: # Langmith disabled.
+            tracing_headers = {}
+            
     return tracing_headers
