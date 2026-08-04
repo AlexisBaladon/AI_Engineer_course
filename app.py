@@ -137,7 +137,7 @@ def login():
             token,
             httponly=True, # HttpOnly cookie prevents JS access (important security)
             secure=not DEBUG,  # TODO: set True in HTTPS production
-            samesite="Lax",
+            samesite="Lax" if DEBUG else "None",
         )
 
         return resp
