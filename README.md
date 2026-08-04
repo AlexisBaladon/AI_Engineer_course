@@ -182,7 +182,9 @@ npm run dev
 If you want to change the configuration of the nginx.conf file, use: 
 
 ```
-sudo systemctl reload nginx.
+source nau_ai/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart nauai
 ```
 
 ### Making changes to the service
