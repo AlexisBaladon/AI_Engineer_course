@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
 | Label | Count |
 |--------|------:|
-    """
+"""
 
     for label, count in faithfulness_labels.items():
         markdown += f"| {label} | {count} |\n"
@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
 | Metric | Seconds |
 |---------|--------:|
-    """
+"""
 
     markdown += f"| Fastest TTFT | {fmt(min(ttft))} |\n"
     markdown += f"| Slowest TTFT | {fmt(max(ttft))} |\n"
@@ -168,7 +168,7 @@ latest version of the Nau64 RAG system.
 
 The benchmark was generated automatically from commit `{commit}` on
 {experiment_date}.
-    """
+"""
 
     with open(
         OUTPUT_FILE,

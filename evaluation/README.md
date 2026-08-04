@@ -32,7 +32,7 @@
 
 | Label | Count |
 |--------|------:|
-    | faithful | 100 |
+| faithful | 100 |
 
 
 ---
@@ -41,7 +41,7 @@
 
 | Metric | Seconds |
 |---------|--------:|
-    | Fastest TTFT | 4.53 |
+| Fastest TTFT | 4.53 |
 | Slowest TTFT | 22.21 |
 
 
@@ -60,4 +60,3 @@ latest version of the Nau64 RAG system.
 
 The benchmark was generated automatically from commit `79d0a9ea6912e5a918fc7b80c7f6dfc3f1ecb0ff` on
 2026-08-04T19:55:39.473948+00:00.
-    
