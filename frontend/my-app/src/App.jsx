@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import Spinner from "./Spinner";
 import Login from "./Login";
 import LoadingScreen from "./LoadingScreen";
+import Sidebar from "./Sidebar";
 import "./App.css";
 
 
@@ -13,6 +14,8 @@ const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || 1235
 
 
 const STORAGE_KEY = "nau_user_id";
+const GUEST_CONVERSATIONS_KEY = "nau_guest_conversations";
+
 
 function getUserId() {
   let userId = localStorage.getItem(STORAGE_KEY);
@@ -30,11 +33,109 @@ export default function App() {
   const inputRef = useRef(null);
   
   const [showLogin, setShowLogin] = useState(false);  
-  const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState(() => {
+    const saved = localStorage.getItem(GUEST_CONVERSATIONS_KEY);
+
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      title: "Nueva conversación",
+      messages: [],
+    };
+  });
+
+  const [currentConversationId, setCurrentConversationId] = useState(0);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
+  function createConversation() {
+    const conversation = {
+      id: crypto.randomUUID(),
+      title: `Nueva conversación`,
+      messages: [],
+    };
+
+    setConversations(prev => [...prev, conversation]);
+    setCurrentConversationId(conversation.id);
+  }
+
+
+  async function initializeConversations() {
+    // Guest user
+    if (!user) {
+      const saved = localStorage.getItem(
+        GUEST_CONVERSATIONS_KEY
+      );
+
+      if (saved) {
+        try {
+          const conversations = JSON.parse(saved);
+
+          if (conversations.length > 0) {
+            setConversations(conversations);
+            setCurrentConversationId(conversations[0].id);
+            return;
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      createConversation();
+      return;
+  }
+
+    try {
+      const response = await fetch(
+        `${BACKEND_HOST}:${BACKEND_PORT}/conversations`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        setConversations([])
+        createConversation();
+        return;
+      }
+
+      const data = await response.json();
+
+      const loadedConversations = [];
+
+      let conversation_numeric_index = 0;
+      for (const [conversation_id, conversation] of Object.entries(data)) {
+        conversation_numeric_index++;
+
+        loadedConversations.push({
+          id: conversation_id,
+          title: `Conversación ${conversation_numeric_index}`,
+          messages: conversation,
+        });
+      }
+
+      if (loadedConversations.length === 0) {
+        setConversations([])
+        createConversation();
+        return;
+      }
+
+      setConversations(loadedConversations);
+      setCurrentConversationId(
+        loadedConversations[0].id
+      );
+    } catch (err) {
+      console.error(err);
+      createConversation();
+    }
+  }
 
 
   async function login(username, password) {
@@ -107,7 +208,16 @@ export default function App() {
       { role: "user", content },
     ];
 
-    setMessages(updatedMessages);
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === currentConversationId
+          ? {
+              ...conv,
+              messages: updatedMessages,
+            }
+          : conv
+      )
+    );
     setLoading(true);
 
     try {
@@ -121,6 +231,7 @@ export default function App() {
           messages: updatedMessages,
           stream: true,
           user_id: userId,
+          conversation_id: currentConversationId,
         }),
       });
 
@@ -131,10 +242,22 @@ export default function App() {
 
       let assistantContent = "";
 
-      setMessages(prev => [
-        ...prev,
-        { role: "assistant", content: "" },
-      ]);
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === currentConversationId
+            ? {
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  {
+                    role: "assistant",
+                    content: "",
+                  },
+                ],
+              }
+            : conv
+        )
+      );
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -161,34 +284,77 @@ export default function App() {
 
             assistantContent += token;
 
-            setMessages(prev => {
-              const copy = [...prev];
-              copy[copy.length - 1] = {
-                role: "assistant",
-                content: assistantContent,
-              };
-              return copy;
-            });
+            setConversations(prev =>
+              prev.map(conv => {
+                if (conv.id !== currentConversationId)
+                  return conv;
+
+                const copy = [...conv.messages];
+
+                copy[copy.length - 1] = {
+                  role: "assistant",
+                  content: assistantContent,
+                };
+
+                return {
+                  ...conv,
+                  messages: copy,
+                };
+              })
+            );
           } catch {}
         }
       }
     } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Error conectándose al servidor. Por favor intente de nuevo o pruebe más tarde.",
-        },
-      ]);
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === currentConversationId
+            ? {
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  {
+                    role: "assistant",
+                    content: "Error conectándose al servidor. Por favor intente de nuevo o pruebe más tarde.",
+                  },
+                ],
+              }
+            : conv
+        )
+      );
     } finally {
       setLoading(false);
       setStreaming(false);
     }
   }
 
-   useEffect(() => {
+  useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (checkingAuth) return;
+
+    initializeConversations();
+  }, [checkingAuth, user]);
+
+  useEffect(() => {
+    if (user) return;
+
+    localStorage.setItem(
+      GUEST_CONVERSATIONS_KEY,
+      JSON.stringify(conversations)
+    );
+  }, [conversations, user]);
+
+  
+  
+  const currentConversation =
+    conversations.find(
+      c => c.id === currentConversationId
+    ) ?? conversations[0];
+
+  const messages = currentConversation ? currentConversation.messages : [];
 
   if (checkingAuth) {
     return <LoadingScreen></LoadingScreen>;
@@ -196,6 +362,12 @@ export default function App() {
 
   return (
     <div className="app">
+       <Sidebar
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          setCurrentConversationId={setCurrentConversationId}
+          createConversation={createConversation}
+      />
       <div className="chat-container">
 
         {/* HEADER */}

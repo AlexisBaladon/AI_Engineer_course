@@ -1,0 +1,148 @@
+
+.sidebar {
+    width: 280px;
+    height: 85vh;
+
+    display: flex;
+    flex-direction: column;
+
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+
+    overflow: hidden;
+}
+
+
+.sidebar-header {
+    padding: 18px;
+
+    border-bottom: 1px solid var(--panel-border);
+
+    background:
+        linear-gradient(
+            to right,
+            rgba(29,78,216,0.08),
+            transparent
+        );
+}
+
+.new-chat-button {
+    width: 100%;
+
+    padding: 12px;
+
+    border: none;
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    background: linear-gradient(
+        135deg,
+        #1d4ed8,
+        #1e3a8a
+    );
+
+    color: white;
+
+    font-weight: 600;
+
+    transition: all .2s;
+}
+
+.new-chat-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 25px rgba(29,78,216,.35);
+}
+
+
+.conversation-list {
+    flex: 1;
+
+    overflow-y: auto;
+
+    padding: 12px;
+}
+
+
+.conversation-item {
+    width: 100%;
+
+    text-align: left;
+
+    margin-bottom: 8px;
+
+    padding: 14px;
+
+    border-radius: 12px;
+
+    border: 1px solid transparent;
+
+    background: rgba(255,255,255,.03);
+
+    color: white;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+
+.conversation-item:hover {
+
+    background:
+        rgba(79,140,255,.08);
+
+    border-color:
+        rgba(79,140,255,.25);
+}
+
+
+.conversation-item.active {
+
+    background:
+        rgba(79,140,255,.12);
+
+    border-color:
+        rgba(79,140,255,.45);
+
+    box-shadow:
+        inset 0 0 0 1px rgba(79,140,255,.15);
+}
+
+
+.conversation-title {
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    color: white;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+.conversation-preview {
+
+    margin-top: 6px;
+
+    font-size: 12px;
+
+    color: var(--muted);
+
+    overflow: hidden;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}

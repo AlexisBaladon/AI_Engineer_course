@@ -3,3 +3,4 @@ secret.yaml
 __pycache__
 .vscode
 generated_boards
+persistence

@@ -28,6 +28,7 @@ from constants import (
     CHUNKED_DATA_PATH,
     IMAGES_PATH,
     TOOLS_IMAGES_DIR,
+    PERSISTENCE_SAVE_DIR,
 )
 from authentication.authentication_handler import (
     create_token,
@@ -51,6 +52,10 @@ from orchestation.mcp_settings import define_mcp_settings
 from orchestation.graph_handler import (
     RAGState,
     build_graph,
+)
+from orchestation.persistence import (
+    save_conversation,
+    load_user_conversations,
 )
 from filter.filter_handler import (
     filter_query,
@@ -108,7 +113,6 @@ query_rewriting_llm = ChatOpenAI(
 embeddings = OpenAIEmbeddings(
     model="text-embedding-3-large",
 )
-DEFAULT_INAPPROPRIATE_RESPONSE = "La consulta realizada fue inapropiada. Vamos a bloquear tu cuenta temporalmente como medida de seguridad."
 
 
 @app.route("/login", methods=["POST"])
@@ -370,37 +374,98 @@ rag_graph = build_graph(
     name="Final response",
     reduce_fn=decode_stream,
 )
-def generate_chunks(answer_stream, additional_information: dict):
+def generate_chunks(
+    answer_stream,
+    additional_information: dict,
+    messages: list[dict],
+    username: str | None = None,
+    conversation_id: int | str | None = None,
+    save_dir=PERSISTENCE_SAVE_DIR,
+):
+    assistant_response = ""
+
     for chunk in answer_stream:
+
+        # Reconstruct the assistant response
+        if chunk.startswith("data: "):
+            data = chunk[6:].strip()
+
+            if data != "[DONE]":
+                try:
+                    payload = json.loads(data)
+
+                    token = payload.get("token")
+
+                    if token:
+                        assistant_response += token
+
+                except json.JSONDecodeError:
+                    pass
+
         yield chunk
+
+    if username is not None and conversation_id is not None:
+
+        conversation = list(messages)
+        conversation.append(
+            {
+                "role": "assistant",
+                "content": assistant_response,
+            }
+        )
+
+        save_conversation(
+            username=username,
+            conversation_id=conversation_id,
+            conversation=conversation,
+            additional_information=additional_information,
+            save_dir=save_dir,
+        )
 
     yield json.dumps(additional_information)
 
 
 @traceable(name="Main Chain")
-def answer_query_and_trace(messages: list[str], user_id: str, role="user", stream: bool = False):
+def answer_query_and_trace(
+    messages: list[dict],
+    user_id: str,
+    conversation_id: int,
+    role="user",
+    stream: bool = False,
+    username=None,
+):
     tracing_tree = get_current_run_tree()
     tracing_headers = tracing_tree.to_headers()
 
-    result = rag_graph.invoke({
-        "user_conversation": messages,
-        "stream": stream,
-        "role": role,
-        "user_id": user_id,
-        "iteration": 0,
-        "max_iterations": 0,
-        "query_history": [],
-    })
+    result = rag_graph.invoke(
+        {
+            "user_conversation": messages,
+            "stream": stream,
+            "role": role,
+            "user_id": user_id,
+            "iteration": 0,
+            "max_iterations": 0,
+            "query_history": [],
+        }
+    )
 
     if stream:
-        additional_information = get_additional_information(result, system_prompt)
+        additional_information = get_additional_information(
+            result,
+            system_prompt,
+        )
+
         result["answer_stream"] = generate_chunks(
-            result["answer_stream"], 
-            additional_information,
+            answer_stream=result["answer_stream"],
+            additional_information=additional_information,
+            messages=messages,
+            username=username,
+            conversation_id=conversation_id,
             langsmith_extra={
                 "parent": tracing_headers,
-        },)
-        return result, 200
+            },
+        )
+
     return result, 200
 
 
@@ -411,10 +476,27 @@ def run_chain():
     messages = body.get("messages", [])
     stream = body.get("stream", False)
     user_id = body.get("user_id", "default")
-    user = get_current_user(request.cookies, encryption_secret_key=ENCRYPTION_SECRET_KEY)
-    role = ADMIN_ROLE if user is not None else USER_ROLE
+    conversation_id = body.get("conversation_id")
 
-    result, status_code = answer_query_and_trace(messages, user_id, role, stream=stream)
+    username = get_current_user(
+        request.cookies,
+        encryption_secret_key=ENCRYPTION_SECRET_KEY,
+    )
+
+    role = (
+        ADMIN_ROLE
+        if username is not None
+        else USER_ROLE
+    )
+
+    result, status_code = answer_query_and_trace(
+        messages=messages,
+        user_id=user_id,
+        conversation_id=conversation_id,
+        role=role,
+        stream=stream,
+        username=username,
+    )
 
     if stream:
         return Response(
@@ -449,6 +531,21 @@ def get_image(filename):
         filename,
         mimetype="image/svg+xml",
     )
+
+
+@app.route("/conversations", methods=["GET"])
+def get_conversations():
+    username = get_current_user(
+        request.cookies,
+        encryption_secret_key=ENCRYPTION_SECRET_KEY,
+    )
+
+    if username is None:
+        return jsonify([]), 200
+
+    conversations = load_user_conversations(username, PERSISTENCE_SAVE_DIR)
+
+    return jsonify(conversations), 200
 
 
 @app.route("/health")

@@ -17,6 +17,7 @@ from constants import (
     DEBUG,
     HOOK_HOST,
     HOOK_PORT,
+    PERSISTENCE_SAVE_DIR,
 )
 from conversation_handler import (
     system_prompt,
@@ -40,6 +41,10 @@ from orchestration_controller import (
     build_prompt_node,
     generate_node,
     get_agent_tool_image,
+)
+from persistence import (
+    save_conversation,
+    load_user_conversations,
 )
 
 
@@ -66,10 +71,54 @@ rag_graph = build_graph(
     name="Final response",
     reduce_fn=decode_stream,
 )
-def generate_chunks(answer_stream, additional_information: dict):
+def generate_chunks(
+    answer_stream,
+    additional_information: dict,
+    messages: list[dict],
+    username: str | None = None,
+    conversation_id: int | str | None = None,
+    save_dir=PERSISTENCE_SAVE_DIR,
+):
+    assistant_response = ""
+
     for chunk in answer_stream.iter_content(chunk_size=None):
         if chunk:
-            yield chunk.decode()
+            chunk = chunk.decode()
+
+        # Reconstruct the assistant response
+        if chunk.startswith("data: "):
+            data = chunk[6:].strip()
+
+            if data != "[DONE]":
+                try:
+                    payload = json.loads(data)
+                    token = payload.get("token")
+
+                    if token:
+                        assistant_response += token
+
+                except json.JSONDecodeError:
+                    pass
+
+        yield chunk
+
+    if username is not None and conversation_id is not None:
+
+        conversation = list(messages)
+        conversation.append(
+            {
+                "role": "assistant",
+                "content": assistant_response,
+            }
+        )
+
+        save_conversation(
+            username=username,
+            conversation_id=conversation_id,
+            conversation=conversation,
+            additional_information=additional_information,
+            save_dir=save_dir,
+        )
 
     yield json.dumps(additional_information)
 
@@ -78,8 +127,10 @@ def generate_chunks(answer_stream, additional_information: dict):
 def answer_query_and_trace(
     messages: list[str],
     user_id: str,
+    conversation_id: int,
     role="user",
     stream: bool = False,
+    username=None,
 ):
     result = rag_graph.invoke(
         {
@@ -100,8 +151,11 @@ def answer_query_and_trace(
     if stream:
         tracing_headers = get_tracing_headers()
         chunk_generator = generate_chunks(
-            result["answer_stream"],
+            answer_stream=result["answer_stream"],
             additional_information=additional_information,
+            messages=messages,
+            username=username,
+            conversation_id=conversation_id,
             langsmith_extra={
                 "parent": tracing_headers,
             },
@@ -121,12 +175,16 @@ def run_chain():
     role = body.get("role", "user")
     stream = body.get("stream", False)
     user_id = body.get("user_id", "default")
+    conversation_id = body.get("conversation_id", None)
+    username = body.get("username", None)
 
     result, status_code = answer_query_and_trace(
         messages,
         user_id,
-        role,
+        conversation_id=conversation_id,
+        role=role,
         stream=stream,
+        username=username,
     )
 
     if stream:
@@ -166,6 +224,18 @@ def get_image(filename):
             "image/svg+xml",
         ),
     )
+
+
+@app.route("/conversations", methods=["GET"])
+def get_conversations():
+    username = request.args.get("username", None)
+
+    if username is None:
+        return abort(400)
+
+    conversations = load_user_conversations(username, PERSISTENCE_SAVE_DIR)
+
+    return jsonify(conversations), 200
 
 
 @app.route("/health")

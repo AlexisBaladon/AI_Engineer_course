@@ -97,6 +97,8 @@ def chat():
 
     body["role"] = role
 
+    body = {**body, **auth.json()}
+
     if stream:
         response = requests.post(
             f"http://{ORCHESTRATION_HOST}:{ORCHESTRATION_PORT}/run_chain",
@@ -153,6 +155,39 @@ def get_image(filename):
             "Content-Type",
             "image/svg+xml",
         ),
+    )
+
+
+@app.route("/conversations", methods=["GET"])
+def get_conversations():
+    """
+    Retrieves all conversations for the authenticated user.
+    """
+
+    auth = requests.get(
+        f"http://{AUTHENTICATION_HOST}:{AUTHENTICATION_PORT}/auth/status",
+        cookies=request.cookies,
+    )
+
+    if auth.status_code != 200:
+        abort(response.status_code)
+
+    try:
+        response = requests.get(
+            f"http://{ORCHESTRATION_HOST}:{ORCHESTRATION_PORT}/conversations",
+            params=auth.json(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        abort(502)
+
+    if response.status_code != 200:
+        abort(response.status_code)
+
+    return Response(
+        response.content,
+        status=response.status_code,
+        content_type="application/json",
     )
 
 
