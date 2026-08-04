@@ -3,8 +3,8 @@ import "./Sidebar.css";
 export default function Sidebar({
     conversations,
     currentConversationId,
-    setCurrentConversationId,
-    createConversation,
+    onSelectConversation,
+    onCreateConversation,
 }) {
     return (
         <div className="sidebar">
@@ -13,7 +13,7 @@ export default function Sidebar({
 
                 <button
                     className="new-chat-button"
-                    onClick={createConversation}
+                    onClick={onCreateConversation}
                 >
                     + Nueva conversación
                 </button>
@@ -22,7 +22,7 @@ export default function Sidebar({
 
             <div className="conversation-list">
 
-                {conversations.map((conversation) => {
+                {conversations.map((conversation, index) => {
 
                     const preview =
                         conversation.messages.find(
@@ -40,13 +40,13 @@ export default function Sidebar({
                                 }`
                             }
                             onClick={() =>
-                                setCurrentConversationId(
+                                onSelectConversation(
                                     conversation.id
                                 )
                             }
                         >
                             <div className="conversation-title">
-                                {conversation.title}
+                                Conversación {index+1}
                             </div>
 
                             <div className="conversation-preview">

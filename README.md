@@ -116,7 +116,7 @@ Always make sure that the containers you push are public so that anyone can pull
 docker compose --build up
 ```
 
-## 🐍⚛️ Deployment option 3: Vanilla python & React
+## 🐍⚛️ Deployment option 3: Light version - Monolithic Python backend & React (Recommended)
 ### 1. Install dependencies
 For the backend:
 ```
@@ -150,6 +150,7 @@ cd <MICROSERVICE_FOLDER>
 python app.py
 ```
 
+To run the frontend (requires npm):
 ```
 cd frontend/my-app
 npm run dev
