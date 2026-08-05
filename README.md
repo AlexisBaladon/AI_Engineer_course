@@ -210,7 +210,6 @@ pip install -r requirements.txt
 sudo systemctl daemon-reload
 sudo systemctl restart nauai
 ```
-```
 
 
 ## 🏠 Architectural decisions
