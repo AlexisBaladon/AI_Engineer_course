@@ -106,7 +106,7 @@ export default function ConversationBlock({
                                     className="suggestion-card"
                                     onClick={() =>
                                         sendSuggestion(
-                                            "¿Podrías mostrarme los movimientos de alguna partida el sabatino del 6 junio de 2026?"
+                                            "¿Cómo terminó la partida de la ronda 5 del sabatino del 6 de junio donde jugaron Leonel Recine y Evangelina Polito? ¿Podrías mostrarme algunos movimientos iniciales?"
                                         )
                                     }
                                 >
