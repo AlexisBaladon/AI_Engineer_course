@@ -138,6 +138,13 @@ export default function ConversationBlock({
 
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        table: ({children}) => (
+                                            <div className="table-wrapper">
+                                                <table>{children}</table>
+                                            </div>
+                                        )
+                                    }}
                                 >
                                     {message.content}
                                 </ReactMarkdown>
