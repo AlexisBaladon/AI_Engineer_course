@@ -32,6 +32,11 @@ Description of the environment variables used in the application:
 - `ADMIN_USER_USERNAME`: The username for the admin user. It could be "admin".
 - `ADMIN_USER_PASSWORD`: The password for the admin user. It could be "123".
 - `ENCRYPTION_SECRET_KEY`: A secret key used for encryption. It could be generate using python -c "import secrets; print(secrets.token_hex(16))".
+- `VITE_BACKEND_HOST`: Necessary for the frontend to work outside a local environment. The host for the backend. It could be "http://localhost".
+- `VITE_BACKEND_PORT`: Necessary for the frontend to work outside a local environment. The port for the backend. It could be "1235".
+- `IMAGE_STORAGE_PREFIX`: The prefix for the backend image storage, required to work outside a local environment. It could be "https".
+- `IMAGE_STORAGE_HOST`: The host for the backend image storage, required to work outside a local environment. It could be "api.appnau.com".
+- `IMAGE_STORAGE_PORT`: The port for the backend image storage, required to work outside a local environment. It could be "443".
 
 
 ## 💻🖥️💻 Deployment option 1: Kubernetes

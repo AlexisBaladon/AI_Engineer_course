@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 
-from constants import BACKEND_ORIGIN
+from constants import IMAGE_STORAGE_ORIGIN
 
 from agent.logic import (
     create_chess_board_image,
@@ -39,7 +39,7 @@ def create_chess_board_image_tool(moves: list[str]) -> str:
         }
 
     # Postprocess output.
-    chess_board_result["url"] = f"{BACKEND_ORIGIN}/image/{chess_board_result['url']}"
+    chess_board_result["url"] = f"{IMAGE_STORAGE_ORIGIN}/image/{chess_board_result['url']}"
 
     return {
         "success": True,
