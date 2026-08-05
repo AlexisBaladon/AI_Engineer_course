@@ -39,7 +39,62 @@ Description of the environment variables used in the application:
 - `IMAGE_STORAGE_PORT`: The port for the backend image storage, required to work outside a local environment. It could be "443".
 
 
-## 💻🖥️💻 Deployment option 1: Kubernetes
+## 🌐 Deployment option 1: Access to an already deployed application
+You can access the deployed application at the following URL: [https://nauai.netlify.app/](https://nauai.netlify.app/)
+
+
+## 🐍⚛️ Deployment option 2: Light version - Monolithic Python backend & React (Recommended)
+### 1. Install dependencies
+For the backend:
+```
+pip install -r requirements.txt
+```
+
+Note: This method inicializes a monolithic Python application, importing the methods of the application instead of making API calls. This is used for less expensive deployments, such as on AWS. It is also possible to run each microservice independently, but this requires more resources and is more costly:
+
+```
+cd <MICROSERVICE_FOLDER>
+pip install -r requirements.txt
+```
+
+For the frontend:
+```
+cd frontend/my-app
+npm install
+```
+
+
+### 2. Run the application
+
+To run the backend in a single server:
+```
+python app.py
+```
+
+To run every microservice independently:
+```
+cd <MICROSERVICE_FOLDER>
+python app.py
+```
+
+To run the frontend (requires npm):
+```
+cd frontend/my-app
+npm run dev
+```
+
+
+## 🐳 Deployment option 3: Docker compose
+### 1. Build and run the docker images
+
+Requires docker compose installed.
+
+```
+docker compose --build up
+```
+
+
+## 💻🖥️💻 Deployment option 4: Kubernetes
 
 ### 1. Verify kubernetes cluster is created
 Kubernetes must be installed and a cluster must be created in order to run the application.
@@ -115,53 +170,8 @@ python push_docker_containers.py --username <DOCKERHUB_USERNAME>
 
 Always make sure that the containers you push are public so that anyone can pull the images.
 
-## 🐳 Deployment option 2: Docker compose
-### 1. Build and run the docker images
-```
-docker compose --build up
-```
 
-## 🐍⚛️ Deployment option 3: Light version - Monolithic Python backend & React (Recommended)
-### 1. Install dependencies
-For the backend:
-```
-pip install -r requirements.txt
-```
-
-Note: This method inicializes a monolithic Python application, importing the methods of the application instead of making API calls. This is used for less expensive deployments, such as on AWS. It is also possible to run each microservice independently, but this requires more resources and is more costly:
-
-```
-cd <MICROSERVICE_FOLDER>
-pip install -r requirements.txt
-```
-
-For the frontend:
-```
-cd frontend/my-app
-npm install
-```
-
-
-### 2. Run the application
-
-To run the backend in a single server:
-```
-python app.py
-```
-
-To run every microservice independently:
-```
-cd <MICROSERVICE_FOLDER>
-python app.py
-```
-
-To run the frontend (requires npm):
-```
-cd frontend/my-app
-npm run dev
-```
-
-## 💫 Deployment option 4: Netlify & AWS
+## 💫 Deployment option 5: Netlify & AWS
 
 ### Deploying the application for the first time
 
@@ -199,10 +209,6 @@ If you want to change the configuration of the nauai.service file, use:
 sudo systemctl daemon-reload
 sudo systemctl restart nauai
 ```
-
-
-## 🌐 Deployment option 5: Access to an already deployed application
-You can access the deployed application at the following URL: [https://nauai.netlify.app/](https://nauai.netlify.app/)
 
 
 ## 🏠 Architectural decisions
