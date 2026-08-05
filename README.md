@@ -197,17 +197,19 @@ Always make sure that the containers you push are public so that anyone can pull
 If you want to change the configuration of the nginx.conf file, use: 
 
 ```
-source nau_ai/bin/activate
-pip install -r requirements.txt
-sudo systemctl restart nauai
+sudo systemctl reload nginx.
 ```
+
 
 ### Making changes to the service
 If you want to change the configuration of the nauai.service file, use: 
 
 ```
+source nau_ai/bin/activate
+pip install -r requirements.txt
 sudo systemctl daemon-reload
 sudo systemctl restart nauai
+```
 ```
 
 
