@@ -435,7 +435,11 @@ def answer_query_and_trace(
     username=None,
 ):
     tracing_tree = get_current_run_tree()
-    tracing_headers = tracing_tree.to_headers()
+
+    try:
+        tracing_headers = tracing_tree.to_headers()
+    except AttributeError: # Langmith disabled.
+        tracing_headers = {}
 
     result = rag_graph.invoke(
         {
