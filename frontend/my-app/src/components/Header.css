@@ -1,5 +1,9 @@
 
 .login-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
     padding: 12px 20px;
 
     border: 1px solid rgba(79,140,255,0.35);
@@ -97,6 +101,10 @@
 
 /* Logout button */
 .logout-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
     margin-left: 6px;
 
     padding: 6px 10px;

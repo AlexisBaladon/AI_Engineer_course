@@ -1,4 +1,5 @@
 import "./Sidebar.css";
+import { FaArrowLeft, FaArrowRight, FaComments, FaPlus } from "react-icons/fa";
 
 export default function Sidebar({
     isOpen,
@@ -18,7 +19,7 @@ export default function Sidebar({
                 aria-label={isOpen ? "Ocultar conversaciones" : "Mostrar conversaciones"}
                 title={isOpen ? "Ocultar conversaciones" : "Mostrar conversaciones"}
             >
-                <span aria-hidden="true">{isOpen ? "‹" : "›"}</span>
+                {isOpen ? <FaArrowLeft aria-hidden="true" /> : <FaArrowRight aria-hidden="true" />}
             </button>
 
             <div className="sidebar-header">
@@ -27,7 +28,8 @@ export default function Sidebar({
                     className="new-chat-button"
                     onClick={onCreateConversation}
                 >
-                    + Nueva conversación
+                    <FaPlus aria-hidden="true" />
+                    Nueva conversación
                 </button>
 
             </div>
@@ -58,7 +60,8 @@ export default function Sidebar({
                             }
                         >
                             <div className="conversation-title">
-                                Conversación {index+1}
+                                <FaComments aria-hidden="true" />
+                                Conversación {index + 1}
                             </div>
 
                             <div className="conversation-preview">

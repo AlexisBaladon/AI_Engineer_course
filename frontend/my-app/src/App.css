@@ -115,7 +115,8 @@ body {
     }
 
     .chat-container {
-        height: calc(100dvh - 270px);
+        height: min(680px, calc(100dvh - 232px));
+        max-height: calc(100dvh - 232px);
     }
 
 }

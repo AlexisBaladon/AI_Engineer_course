@@ -1,4 +1,5 @@
 import './Header.css'
+import { FaRightFromBracket, FaRightToBracket } from "react-icons/fa6";
 
 export default function Header({
     user,
@@ -14,6 +15,7 @@ export default function Header({
                     className="login-button"
                     onClick={onLoginClick}
                 >
+                    <FaRightToBracket aria-hidden="true" />
                     Iniciar sesión
                 </button>
 
@@ -35,6 +37,7 @@ export default function Header({
                             className="logout-button"
                             onClick={onLogout}
                         >
+                            <FaRightFromBracket aria-hidden="true" />
                             Cerrar sesión
                         </button>
 

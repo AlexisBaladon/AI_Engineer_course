@@ -1,6 +1,14 @@
 import { useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+    FaBookOpen,
+    FaChessBoard,
+    FaChessKnight,
+    FaClock,
+    FaPaperPlane,
+    FaTrophy,
+} from "react-icons/fa";
 
 import Spinner from "./Spinner";
 import './ConversationBlock.css'
@@ -10,7 +18,6 @@ export default function ConversationBlock({
     loading,
     streaming,
     onSendMessage,
-    onSuggestion,
 }) {
     const inputRef = useRef(null);
 
@@ -35,6 +42,7 @@ export default function ConversationBlock({
             {/* Header */}
             <div className="header">
                 <div className="logo">
+                    <FaChessKnight aria-hidden="true" />
                     NauAI
                 </div>
 
@@ -54,11 +62,11 @@ export default function ConversationBlock({
                         <div className="empty-chat-content">
 
                             <div className="assistant-avatar">
-                                N
+                                <FaChessKnight aria-hidden="true" />
                             </div>
 
                             <h2 className="empty-chat-title">
-                                ¡Hola! Soy NauAI 👋
+                                ¡Hola! Soy NauAI
                             </h2>
 
                             <p className="empty-chat-subtitle">
@@ -77,7 +85,8 @@ export default function ConversationBlock({
                                         )
                                     }
                                 >
-                                    📚 Ver cursos disponibles
+                                    <FaBookOpen className="suggestion-icon" aria-hidden="true" />
+                                    Ver cursos disponibles
                                 </button>
 
                                 <button
@@ -88,7 +97,8 @@ export default function ConversationBlock({
                                         )
                                     }
                                 >
-                                    🏆 Ver últimos torneos
+                                    <FaTrophy className="suggestion-icon" aria-hidden="true" />
+                                    Ver últimos torneos
                                 </button>
 
                                 <button
@@ -99,7 +109,8 @@ export default function ConversationBlock({
                                         )
                                     }
                                 >
-                                    🕜 Ver horarios
+                                    <FaClock className="suggestion-icon" aria-hidden="true" />
+                                    Ver horarios
                                 </button>
 
                                 <button
@@ -110,7 +121,8 @@ export default function ConversationBlock({
                                         )
                                     }
                                 >
-                                    ♟️ Ver últimas jugadas
+                                    <FaChessBoard className="suggestion-icon" aria-hidden="true" />
+                                    Ver últimas jugadas
                                 </button>
 
                             </div>
@@ -196,7 +208,8 @@ export default function ConversationBlock({
                     onClick={handleSend}
                     disabled={loading || streaming}
                 >
-                    Enviar
+                    <FaPaperPlane aria-hidden="true" />
+                    <span>Enviar</span>
                 </button>
 
             </div>
