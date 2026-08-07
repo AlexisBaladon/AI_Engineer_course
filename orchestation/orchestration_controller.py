@@ -61,7 +61,7 @@ def filter_node(state: RAGState):
     filter_response = requests.post(
         f"http://{FILTER_HOST}:{FILTER_PORT}/filter",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
     filter_response.raise_for_status()
     filter_information = filter_response.json()
@@ -94,7 +94,7 @@ def retrieve_node(state: RAGState):
     retrieval_response = requests.post(
         f"http://{RETRIEVAL_HOST}:{RETRIEVAL_PORT}/retrieve",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
 
     retrieval_response.raise_for_status()
@@ -122,7 +122,7 @@ def rank_node(state: RAGState):
     ranked_response = requests.post(
         f"http://{RANKING_HOST}:{RANKING_PORT}/rank",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
 
     ranked_response.raise_for_status()
@@ -148,7 +148,7 @@ def judge_context_node(state: RAGState):
     response = requests.post(
         f"http://{JUDGE_HOST}:{JUDGE_PORT}/judge",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
 
     response.raise_for_status()
@@ -174,7 +174,7 @@ def rewrite_query_node(state: RAGState):
     response = requests.post(
         f"http://{REWRITE_HOST}:{REWRITE_PORT}/rewrite",
         json=payload,
-        timeout=30,
+        timeout=120,
     )
 
     response.raise_for_status()
