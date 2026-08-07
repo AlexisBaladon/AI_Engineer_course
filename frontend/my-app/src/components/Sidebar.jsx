@@ -1,13 +1,25 @@
 import "./Sidebar.css";
 
 export default function Sidebar({
+    isOpen,
+    onToggle,
     conversations,
     currentConversationId,
     onSelectConversation,
     onCreateConversation,
 }) {
     return (
-        <div className="sidebar">
+        <aside className={`sidebar ${isOpen ? "sidebar--open" : "sidebar--closed"}`}>
+
+            <button
+                className="sidebar-toggle"
+                type="button"
+                onClick={onToggle}
+                aria-label={isOpen ? "Ocultar conversaciones" : "Mostrar conversaciones"}
+                title={isOpen ? "Ocultar conversaciones" : "Mostrar conversaciones"}
+            >
+                <span aria-hidden="true">{isOpen ? "‹" : "›"}</span>
+            </button>
 
             <div className="sidebar-header">
 
@@ -59,6 +71,6 @@ export default function Sidebar({
 
             </div>
 
-        </div>
+        </aside>
     );
 }

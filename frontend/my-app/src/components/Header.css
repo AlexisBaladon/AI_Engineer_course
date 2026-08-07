@@ -1,30 +1,5 @@
 
-/* Header layout (if not already present) */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    padding: 18px 24px;
-
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-
-    background: linear-gradient(
-        to right,
-        rgba(255,255,255,0.03),
-        rgba(255,255,255,0.01)
-    );
-}
-
-/* Floating login button */
 .login-button {
-    position: fixed;
-
-    top: 24px;
-    right: 24px;
-
-    z-index: 1000;
-
     padding: 12px 20px;
 
     border: 1px solid rgba(79,140,255,0.35);
@@ -68,10 +43,14 @@
 }
 
 .top-bar {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
+    width: min(900px, 100%);
+    min-height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    margin-bottom: 12px;
 }
 
 /* Container when logged in */
@@ -140,4 +119,27 @@
 .logout-button:hover {
     background: rgba(255, 100, 100, 0.15);
     border-color: rgba(255, 100, 100, 0.4);
+}
+
+@media (max-width: 600px) {
+    .top-bar {
+        min-height: 44px;
+        margin-bottom: 8px;
+    }
+
+    .login-button {
+        padding: 9px 14px;
+    }
+
+    .user-chip {
+        gap: 8px;
+        padding: 6px 9px;
+    }
+
+    .username {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }
