@@ -12,6 +12,26 @@ def run(command):
     subprocess.run(command, check=True)
 
 
+def resolve_directory(directory: Path) -> Path:
+    """
+    If a directory contains only one subdirectory and no files,
+    descend into it until reaching a directory that contains
+    files or multiple entries.
+    """
+    current = directory
+
+    while True:
+        entries = list(current.iterdir())
+
+        subdirs = [e for e in entries if e.is_dir()]
+        files = [e for e in entries if e.is_file()]
+
+        if len(subdirs) == 1 and len(files) == 0:
+            current = subdirs[0]
+        else:
+            return current
+        
+
 def main():
     parser = argparse.ArgumentParser(
         description="Build and push all Docker images in subdirectories containing a Dockerfile."
@@ -53,7 +73,9 @@ def main():
         if not directory.is_dir():
             continue
 
-        dockerfile = directory / "Dockerfile"
+        build_directory = resolve_directory(directory)
+
+        dockerfile = build_directory / "Dockerfile"
 
         if dockerfile.exists():
             found = True
@@ -63,6 +85,7 @@ def main():
 
             print("\n" + "=" * 60)
             print(f"Directory : {directory.name}")
+            print(f"Build dir : {build_directory}")
             print(f"Image     : {full_tag}")
 
             run([
@@ -70,13 +93,13 @@ def main():
                 "build",
                 "-t",
                 full_tag,
-                str(directory)
+                str(build_directory),
             ])
 
             run([
                 "docker",
                 "push",
-                full_tag
+                full_tag,
             ])
 
     if not found:
