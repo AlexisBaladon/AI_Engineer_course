@@ -132,7 +132,7 @@
 @media (max-width: 600px) {
     .top-bar {
         min-height: 44px;
-        margin-bottom: 8px;
+        margin-bottom: 0;
     }
 
     .login-button {
