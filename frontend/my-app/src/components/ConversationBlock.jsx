@@ -47,7 +47,7 @@ export default function ConversationBlock({
                 </div>
 
                 <div className="subtitle">
-                    El agente (aún no) oficial de Nau64
+                    El agente oficial de Nau64
                 </div>
             </div>
 
