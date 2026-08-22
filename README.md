@@ -211,6 +211,49 @@ sudo systemctl daemon-reload
 sudo systemctl restart nauai
 ```
 
+### Automated document database deployment
+
+After regenerating the CSV files, deploy the monolithic EC2 application from
+the repository root with:
+
+```powershell
+.\aws_deploy\deploy.ps1
+```
+
+By default, database changes are committed as `Feature: Add updated retrieval
+data from YYYY-MM-DD`. Pass `-CommitMessage` only when you want a custom
+message.
+
+The script defaults to the current EC2 instance (`ubuntu@3.19.168.215`) and
+`C:\Users\Usuario\.ssh\nau_ai.pem`. Set the corresponding `NAUAI_*`
+environment variable or pass a parameter only when those values change.
+
+The script stages and commits both copies of the generated database, pushes the
+current branch, connects to EC2 with SSH, runs a fast-forward pull, updates
+Python dependencies, restarts `nauai`, and waits for `http://127.0.0.1:1235/health`.
+It intentionally updates both `ingestion/` (used by the EC2 monolithic
+`app.py`) and `retrieval/data/` (used by the microservice deployment).
+
+One-time EC2 requirement: the SSH user must be able to run
+`sudo systemctl restart nauai` and `sudo systemctl is-active nauai` without a
+password. This can be granted narrowly through a sudoers rule for those two
+commands. The script uses non-interactive sudo and fails safely if that access
+has not been configured. For the default `ubuntu` user, connect to EC2 once
+and run:
+
+```bash
+SYSTEMCTL_PATH="$(command -v systemctl)"
+echo "ubuntu ALL=(root) NOPASSWD: ${SYSTEMCTL_PATH} restart nauai, ${SYSTEMCTL_PATH} is-active nauai" | sudo tee /etc/sudoers.d/nauai-deploy
+sudo chmod 440 /etc/sudoers.d/nauai-deploy
+sudo visudo -cf /etc/sudoers.d/nauai-deploy
+```
+
+Optional environment variables are `NAUAI_EC2_USER` (defaults to `ubuntu`),
+`NAUAI_REMOTE_PROJECT_PATH` (defaults to
+`/home/ubuntu/AI_Engineer_course`), and `NAUAI_SERVICE_NAME` (defaults to
+`nauai`). Use `-SkipDependencyInstall` when only CSV files changed and the
+server's dependencies are already current.
+
 
 ## 🏠 Architectural decisions
 ### Flow of the application
@@ -231,7 +274,41 @@ The components present here are:
 
 
 ### Ingestion
-The ingestion of documents is done using the `ingestion/ingestion.ipynb` notebook. The script uses the `text-embedding-3-large` model to generate embeddings for the documents, and then stores the embeddings in a CSV file.
+The repeatable ingestion command replaces the notebook workflow. It crawls the
+Nau64 website, cleans and deduplicates pages, extracts image URLs, creates
+semantic chunks, embeds them with `text-embedding-3-large`, and updates the
+CSV files used by both runtime layouts.
+
+```bash
+pip install -r ingestion/requirements.txt
+python ingestion/run_ingestion.py
+```
+
+Useful safety controls:
+
+```bash
+# Validate the planned run without crawling, calling OpenAI, or writing files.
+python ingestion/run_ingestion.py --dry-run
+
+# Crawl a smaller sample while developing.
+python ingestion/run_ingestion.py --max-pages 2 --max-urls 50
+
+# Reuse the saved crawled_data.csv and stop before semantic chunking/embeddings.
+python ingestion/run_ingestion.py --skip-crawl --skip-embeddings
+```
+
+The script writes intermediate crawl, cleaned, and chunk CSVs under
+`ingestion/`. On a full run it writes the final `embedded_chunked_data.csv` and
+`website_images.csv` to both `ingestion/` (used by the monolithic EC2
+application) and `retrieval/data/` (used by the microservice deployment).
+`OPENAI_API_KEY` must be available in the root `.env` file for a full run;
+semantic chunking also uses embeddings.
+
+Raw HTML can exceed Python's default CSV field limit. The command configures
+the parser to use the largest safe platform limit before reading or writing
+CSV files. During the initial recursive crawl it also defers WordPress archive
+URLs matching `/page/<number>/`; the dedicated pagination pass fetches every
+archive page up to `--max-pages` and still follows the article links it finds.
 
 
 ### Metrics
